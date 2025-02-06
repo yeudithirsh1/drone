@@ -127,7 +127,7 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step) {
         {
             i--;
 			t = j;
-			flag = false;
+			flag = false; 
         }
         else
         {
