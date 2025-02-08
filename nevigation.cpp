@@ -91,57 +91,53 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step) {
     return points;
 }
 
- vector<vector<Point>> zigzag(vector<vector<Point>> &graph)
- {
-    int j, l, t, m;
-	bool flag = false;
-	for (int i = 0, k = graph.size()-1; i < graph.size(), k >= 0; i++, k--)
-	{
-        if (i>0)
-        {
-		   if (flag)
-		   	   t = 0;
-           else
-		       m = min(graph[i].size(), graph[k].size())-1;
-		}
-        else
-        {
-			t = 0;
-			m = min(graph[i].size(), graph[k].size()) - 1;
-        }
-        for (j = t; j < min(graph[i].size(), graph[k].size()); j++)
-        {
-            if (j % 2 == 0)
-                graph[i][j].next = &graph[i][j + 1];
-            else
-                graph[i][j].next = &graph[k][j];
-        }
-        for (l = m-1; l >= 0; l--)
-        {
-            if (l % 2 != 0)
-                graph[k][l].next = &graph[k][l+1];
-            else
-                graph[k][l].next = &graph[i][l];
-        }
-        if (j < graph[i].size() && l== graph[k].size())
-        {
-            i--;
-			t = j;
-			flag = false; 
-        }
-        else
-        {
-            if (l < graph[k].size() && j== graph[i].size())
-            {
-                k--;
-                m = l;	
-				flag = true;
+// vector<vector<Point>> zigzag(vector<vector<Point>> &graph)
+// {
+//    return graph;
+// }
+
+vector<vector<Point>> zigzag(vector<vector<Point>> edges)
+{
+    if (edges.size() < 2) return edges; // אין מספיק צלעות לזיגזג
+    size_t numEdges = edges.size();
+    bool goingUp = true; // נתחיל מהכיוון הראשון (למעלה או למטה)
+
+    for (size_t i = 0; i < numEdges - 1; ++i) { // מעבר בין זוגות צלעות
+        vector<Point>& currentEdge = edges[i];
+        vector<Point>& nextEdge = edges[i + 1];
+        size_t curSize = currentEdge.size();
+        size_t nextSize = nextEdge.size();
+        size_t curIdx = goingUp ? 0 : curSize - 1; // התחל למטה/למעלה
+        size_t nextIdx = goingUp ? 0 : nextSize - 1;
+        while (curIdx < curSize && nextIdx < nextSize) {
+            currentEdge[curIdx].next = &nextEdge[nextIdx]; // חיבור לנקודה המקבילה
+
+            // זזים בכיוון הנוכחי (למעלה/למטה)
+            if (goingUp) {
+                if (++curIdx >= curSize) break;
+            }
+            else {
+                if (curIdx == 0) break;
+                --curIdx;
             }
 
+            // חיבור לנקודה הבאה באותה צלע
+            nextEdge[nextIdx].next = &currentEdge[curIdx];
+
+            // זזים בצלע המקבילה
+            if (goingUp) {
+                if (++nextIdx >= nextSize) break;
+            }
+            else {
+                if (nextIdx == 0) break;
+                --nextIdx;
+            }
         }
-	}
-    return graph;
- }
+
+        goingUp = !goingUp; // הפוך כיוון לצלעות הבאות
+    }
+    return edges;
+}
 
 // פונקציה ראשית
 vector<vector<Point>> processPoints(vector<Point> &points, int r)
@@ -161,19 +157,25 @@ vector<vector<Point>> processPoints(vector<Point> &points, int r)
         cout << "Points on line:\n";
         for (const auto& p : line)
         {
-            cout << "(" << p.x << ", " << p.y << ", " << p.z << ", " << p.next << ")\n";
+            cout << "(" << p.x << ", " << p.y << ", " << p.z << ", next: (";
+            if (p.next != nullptr) {
+                cout << p.next->x << ", " << p.next->y << ", " << p.next->z << ")\n";
+            }
+            else {
+                cout << "nullptr";
+            }
         }
     }
     return pointsOnLines;
 }
 
-int main() 
-{
-    vector<Point> points = {{0, 5, 5, nullptr}, {5, 0, 5, nullptr}, {10, 5, 5, nullptr}, {5, 10, 5, nullptr} };
-    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
-    double r;
-    cout << "Enter the drone's visual range.";
-    cin >> r;   
-    vector<vector<Point>> edges = processPoints(points, r);
-    return 0;
-}
+//int main() 
+//{
+//    vector<Point> points = {{0, 5, 5, nullptr}, {5, 0, 5, nullptr}, {10, 5, 5, nullptr}, {5, 10, 5, nullptr} };
+//    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
+//    double r;
+//    cout << "Enter the drone's visual range.";
+//    cin >> r;   
+//    vector<vector<Point>> edges = processPoints(points, r);
+//    return 0;
+//}
