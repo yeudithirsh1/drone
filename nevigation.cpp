@@ -70,74 +70,125 @@ bool isOnLine(Point A, Point B, Point P) {
 }
 
 //שמירת כל הנקודות שנמצאות על ישר עם הפרש של רדיוס בין כל נקודה
-vector<Point> generatePointsOnLine(Point A, Point B, double step) {
+vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
     vector<Point> points;
-	if (A.y == B.y) {
-	    points.push_back({A.x, A.y, A.z, nullptr });
-        points.push_back({B.x, B.y, A.z, nullptr });
-		return points;
-	}
+    if (A.y == B.y) {
+        if (flag)
+            points.push_back({ A.x, A.y, A.z, nullptr });
+        points.push_back({ B.x, B.y, A.z, nullptr });
+        return points;
+    }
+
     double distance = sqrt(pow(B.x - A.x, 2) + pow(B.y - A.y, 2));
     int steps = distance / step;
     double dx = (B.x - A.x) / distance * step;
     double dy = (B.y - A.y) / distance * step;
-    for (int i = 0; i <= steps; i++) 
-    {
+
+    for (int i = 0; i <= steps; i++) {
         Point P = { A.x + i * dx, A.y + i * dy };
-        if (isOnLine(A, B, P)) 
+        if (isOnLine(A, B, P)) {
+            if (i == 0 && !flag) continue; // דילוג על הנקודה הראשונה אם flag שווה false
             points.push_back({ P.x, P.y, A.z, nullptr });
+        }
     }
 
     return points;
 }
 
-// vector<vector<Point>> zigzag(vector<vector<Point>> &graph)
-// {
-//    return graph;
-// }
-
-vector<vector<Point>> zigzag(vector<vector<Point>> edges)
+vector<vector<Point>> zigzag(vector<vector<Point>> graph)
 {
-    if (edges.size() < 2) return edges; // אין מספיק צלעות לזיגזג
-    size_t numEdges = edges.size();
-    bool goingUp = true; // נתחיל מהכיוון הראשון (למעלה או למטה)
+    int j, l, t, m,  n,  s=2;
+    bool flag = false, d1 = true, d2 =true, b = true;
 
-    for (size_t i = 0; i < numEdges - 1; ++i) { // מעבר בין זוגות צלעות
-        vector<Point>& currentEdge = edges[i];
-        vector<Point>& nextEdge = edges[i + 1];
-        size_t curSize = currentEdge.size();
-        size_t nextSize = nextEdge.size();
-        size_t curIdx = goingUp ? 0 : curSize - 1; // התחל למטה/למעלה
-        size_t nextIdx = goingUp ? 0 : nextSize - 1;
-        while (curIdx < curSize && nextIdx < nextSize) {
-            currentEdge[curIdx].next = &nextEdge[nextIdx]; // חיבור לנקודה המקבילה
-
-            // זזים בכיוון הנוכחי (למעלה/למטה)
-            if (goingUp) {
-                if (++curIdx >= curSize) break;
+    // לולאה עיקרית שמבצעת את הסריקה
+    for (int i = 0, k = graph.size() - 1; i < graph.size() && k >= 0; i++, k--)
+    {
+        if (i > 0 && b)
+        {
+            if (flag)
+            { 
+                t = 0;
+                s = 0;
             }
-            else {
-                if (curIdx == 0) break;
-                --curIdx;
-            }
-
-            // חיבור לנקודה הבאה באותה צלע
-            nextEdge[nextIdx].next = &currentEdge[curIdx];
-
-            // זזים בצלע המקבילה
-            if (goingUp) {
-                if (++nextIdx >= nextSize) break;
-            }
-            else {
-                if (nextIdx == 0) break;
-                --nextIdx;
+            else
+            {
+                m = graph[k].size() - 1;
+                n = graph[k].size() - 1;
             }
         }
+        else
+        {
+            t = 0;
+            m =  graph[k].size()- 1;
+            n = graph[k].size() - 1;
+        }
 
-        goingUp = !goingUp; // הפוך כיוון לצלעות הבאות
+        // חיבור בין נקודות בצלע הנוכחית
+        for (j = t; j < min(graph[i].size(), graph[k].size()) && n >= 0; j++)
+        {
+            cout << i << "," << k << "," << j << "," << t << "," << n << "\n";
+            if (d2)
+            {
+                if (j + 1 < graph[i].size())
+                    graph[i][j].next = &graph[i][j + 1];
+                else if (i + 1 < graph.size())
+                    graph[i][j].next = &graph[i + 1][0];
+                d2 = false;
+            }
+            else
+            {
+                if (n >= 0)
+                    graph[i][j].next = &graph[k][n];
+                d2 = true;
+                n--;
+            }
+        }
+        cout << "------------------\n";
+        // חיבור בין הנקודות בצלע השנייה בכיוון ההפוך
+        for (l = m; l >= 0 && s <= graph[i].size(); l--, s++)
+        {
+            cout << i << "," << k << "," << l << "," << m << "," << s << "\n";
+            if (d1)
+            {
+                if (l - 1 >= 0)
+                    graph[k][l].next = &graph[k][l - 1];
+                else
+                    if (k > 0)
+                        graph[k][l].next = &graph[k - 1][graph[k - 1].size() - 1];
+                d1 = false;
+            }
+            else
+            {
+                if (s < graph[i].size())
+                    graph[k][l].next = &graph[i][s];
+                d1 = true;
+            }
+        }
+        cout << "------------------\n";
+
+        // עדכון מצב כדי להחליף צלע
+        if (j < graph[i].size() && l <= 0)
+        {
+            i--;
+            t = j;
+            flag = false;
+        }
+        else if (l < graph[k].size() && j == graph[i].size())
+        {
+            k--;
+            m = l;
+            flag = true;
+        }
+        else if (j == graph[i].size() && l == graph[k].size())
+        {
+            b = false;
+        }
     }
-    return edges;
+
+    return graph; // החזרת הגרף לאחר סיום החיבורים
 }
+
+
 
 // פונקציה ראשית
 vector<vector<Point>> processPoints(vector<Point> &points, int r)
@@ -145,12 +196,21 @@ vector<vector<Point>> processPoints(vector<Point> &points, int r)
     vector<Point> hull = convexHull(points);
     vector<pair<Point, Point>> edges = createEdges(hull);
     vector<vector<Point>> pointsOnLines;
+	bool flag = true;
     for (int i = 0; i < edges.size(); ++i)
     { 
-        vector<Point> linePoints = generatePointsOnLine(edges[i].first, edges[i].second, r);
+        if (i != 0)
+		{
+			flag = false;
+		}
+        vector<Point> linePoints = generatePointsOnLine(edges[i].first, edges[i].second, r, flag);
         pointsOnLines.push_back(linePoints);
     }
-	pointsOnLines = zigzag(pointsOnLines);
+    if (!pointsOnLines.empty() && !pointsOnLines.back().empty()) 
+    {
+        pointsOnLines.back().back().next = nullptr;
+    }
+    pointsOnLines = zigzag(pointsOnLines);
     //הדפסת הגרף
     for (const auto& line : pointsOnLines)
     {
@@ -162,20 +222,61 @@ vector<vector<Point>> processPoints(vector<Point> &points, int r)
                 cout << p.next->x << ", " << p.next->y << ", " << p.next->z << ")\n";
             }
             else {
-                cout << "nullptr";
+                cout << "nullptr\n";
             }
         }
     }
     return pointsOnLines;
 }
 
-//int main() 
-//{
-//    vector<Point> points = {{0, 5, 5, nullptr}, {5, 0, 5, nullptr}, {10, 5, 5, nullptr}, {5, 10, 5, nullptr} };
-//    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
-//    double r;
-//    cout << "Enter the drone's visual range.";
-//    cin >> r;   
-//    vector<vector<Point>> edges = processPoints(points, r);
-//    return 0;
-//}
+int main() 
+{
+    vector<Point> points = { {5, 0, 5, nullptr}, {10,5,5, nullptr} , {5,10, 5, nullptr}, {0,5, 5, nullptr } };
+
+    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
+    double r;
+    cout << "Enter the drone's visual range.";
+    cin >> r;   
+    vector<vector<Point>> edges = processPoints(points, r);
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//pointsOnLines[0][0].next = &pointsOnLines[0][1];
+//pointsOnLines[0][1].next = &pointsOnLines[3][2];
+//pointsOnLines[3][2].next = &pointsOnLines[3][1];
+//pointsOnLines[3][1].next = &pointsOnLines[0][2];
+//pointsOnLines[0][2].next = &pointsOnLines[0][3];
+//pointsOnLines[0][3].next = &pointsOnLines[3][0];
+//pointsOnLines[3][0].next = &pointsOnLines[2][2];
+//pointsOnLines[2][2].next = &pointsOnLines[1][0];
+//pointsOnLines[1][0].next = &pointsOnLines[1][1];
+//pointsOnLines[1][1].next = &pointsOnLines[2][1];
+//pointsOnLines[2][1].next = &pointsOnLines[2][0];
+//pointsOnLines[2][0].next = &pointsOnLines[1][2];
