@@ -97,16 +97,15 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
 
 vector<vector<Point>> zigzag(vector<vector<Point>> graph)
 {
-    int j = NULL, l, t=0, m = graph[graph.size()-1].size() - 1, n = graph[graph.size() - 1].size() - 1, s = 2, length = min(graph[0].size(), graph[graph.size() - 1].size());
-    bool flag = false, d1 = true, d2 =true, b;
+    int j = NULL, l, t = 0, m = graph[graph.size() - 1].size() - 1, n = graph[graph.size() - 1].size() - 1, s = 2, length = min(graph[0].size(), graph[graph.size() - 1].size());
+    bool flag = false, d1 = true, d2 = true, b;
 
     // לולאה עיקרית שמבצעת את הסריקה
     for (int i = 0, k = graph.size() - 1; i < graph.size() && k >= 0; i++, k--)
     {
-     
         // חיבור בין נקודות בצלע הנוכחית
         for (j = t; j < length && n >= 0; j++)
-        {    
+        {
             cout << i << "," << k << "," << j << "," << t << "," << n << "," << d2 << "\n";
             if (d2)
             {
@@ -122,15 +121,15 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph)
             }
             else
             {
-                if (n >= 0)
+                if (n >= 0 && k < graph.size() && n < graph[k].size())
                     graph[i][j].next = &graph[k][n];
                 d2 = true;
                 n--;
             }
-        }    
+        }
         cout << "------------------\n";
         // חיבור בין הנקודות בצלע השנייה בכיוון ההפוך
-        for (l = m; l >= 0 && s <= graph[i].size(); l--)
+        for (l = m; l > 0 && s <= graph[i].size(); l--)
         {
             cout << i << "," << k << "," << l << "," << m << "," << s << "," << d1 << "\n";
             if (d1)
@@ -141,13 +140,13 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph)
                     if (k > 0)
                     {
                         graph[k][l].next = &graph[k - 1][graph[k - 1].size() - 1];
-						flag = true;
+                        flag = true;
                     }
                 d1 = false;
             }
             else
             {
-                if (s < graph[i].size())
+                if (s < graph[i].size() && k < graph.size() && s < graph[i].size())
                     graph[k][l].next = &graph[i][s];
                 d1 = true;
                 s++;
@@ -169,25 +168,25 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph)
             else
                 n = graph[k - 1].size() - 1;
         }
-        else 
-        { 
+        else
+        {
             if (l < graph[k].size() && j == graph[i].size())
             {
                 k--;
                 m = l;
-				length = graph[k].size();
+                length = graph[k].size();
                 t = 0;
                 if (b)
                     s = 1;
                 else
-                    s = 0;     
+                    s = 0;
             }
-            else 
-            { 
+            else
+            {
                 if (j == graph[i].size() && l == graph[k].size())
-                 {
+                {
                     t = 0;
-                    m = graph[k -1].size() - 1;
+                    m = graph[k - 1].size() - 1;
                     if (b)
                         s = 1;
                     else
@@ -196,13 +195,15 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph)
                         n = graph[k - 1].size() - 2;
                     else
                         n = graph[k - 1].size() - 1;
-                 }
+                }
             }
         }
     }
 
     return graph; // החזרת הגרף לאחר סיום החיבורים
 }
+
+
 
 // פונקציה ראשית
 vector<vector<Point>> processPoints(vector<Point> &points, int r)
