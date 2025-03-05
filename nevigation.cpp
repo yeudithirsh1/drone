@@ -8,6 +8,7 @@ using namespace std;
 //מבנה של נקודה על גרף
 using Point = nevigation::Point;
 
+
 // חישוב מכפלה וקטורית
 double crossProduct(const Point &a, const Point &b, const Point &c) 
 {
@@ -95,143 +96,97 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
     return points;
 }
 
-vector<vector<Point>> zigzag(vector<vector<Point>> graph)
-{
-    int i, k, j = NULL, l, t = 0, m = graph[graph.size() - 1].size() - 1, n = graph[graph.size() - 1].size() - 1, s = 2, length = min(graph[0].size(), graph[graph.size() - 1].size());
-    bool flag = false, d1 = true, d2 = true, b= false;
-
-    // לולאה עיקרית שמבצעת את הסריקה
-    for (i = 0, k = graph.size() - 1; i < graph.size() && k >= 0; i++, k--)
+vector<vector<Point>> zigzag(vector<vector<Point>> graph) {
+	bool flag = true;
+    int k = graph.size() - 1, n = graph[graph.size() - 1].size() - 1,
+        i, j;
+    for(i = 0; i< graph.size() && i < k; i++)
     {
-        // חיבור בין נקודות בצלע הנוכחית
-        for (j = t; j < length && n >= 0; j++)
-        {
-            cout << i << "," << k << "," << j << "," << t << "," << n << "," << d2 << "\n";
-            if (d2)
+		for (j = 0; j < graph[i].size(); j++)
+		{
+            if (flag)
             {
                 if (j + 1 < graph[i].size())
+                {
                     graph[i][j].next = &graph[i][j + 1];
+                }
                 else
                 {
-                    if (i + 1 < graph.size())
-                    {
-                        graph[i][j].next = &graph[i + 1][0];
-                        b = true;
-                        s = 1;
-                    }
+                    graph[i][j].next = &graph[i + 1][0];
                 }
-                d2 = false;
+                flag = false;
             }
             else
             {
-                if (k < graph.size() ) 
-                {
-                    if (j == length)
-                        s = 0;
-                    graph[i][j].next = &graph[k][n];
-                }
-                d2 = true;
-				if (n - 2 >= 0)
-                    n-=2;
-                else
-                {
-                    if (n = 0)
-                        n = graph[k - 1].size() - 2;
-                    else
-                        n = graph[k - 1].size() - 1;
-                }
+				if (n >= 0)
+				{
+					graph[i][j].next = &graph[k][n];
+					if (n - 2 >= 0)
+						n -= 2;
+					else
+					{
+                        if (n == 0)
+                        {
+                            n = graph[k - 1].size() - 2;
+                            k--;
+                        }
+                        else
+                        {
+                            n = graph[k - 1].size() - 1;
+							k--;
+                        }
+					}
+				}
+                flag = true;
             }
-        }
-        cout << "------------------\n";
-        // חיבור בין הנקודות בצלע השנייה בכיוון ההפוך
-        for (l = m; l >= 0 && s <= graph[i].size(); l--)
-        {
-            cout << i << "," << k << "," << l << "," << m << "," << s << "," << d1 << "\n";
-            if (d1)
-            {
-                if (l - 1 > 0)
-                    graph[k][l].next = &graph[k][l - 1];
-                else
-                {
-                    if (k > 0)
-                    {
-                        graph[k][l].next = &graph[k - 1][graph[k - 1].size() - 1];
-                        flag = true;
-                    }
-                }
-                d1 = false;
-            }
-            else
-            {
-                if (s < graph[i].size() && k < graph.size() && s < graph[i].size())
-                    graph[k][l].next = &graph[i][s];
-                d1 = true;
-                if (s + 2 <= graph[i].size() - 1)
-                    s++;
-                else
-                {
-                    if (s == graph[i].size() - 1)
-                        s = 1;
-                    else
-                        s = 0;
-                }
-            }
-        }
-        cout << "------------------\n";
-
-        // עדכון מצב כדי להחליף צלע
-        if (j < graph[i].size() && ++l == 0)
-        {
-            cout << i << "," << k << "," << j << "," << t << "," << n << "," << d2 << "," << length << "\n";
-            cout << i << "," << k << "," << l << "," << m << "," << s << "," << d1 << "," << length << "\n";
-            cout << "------------------\n";
-            t = j;
-            if ((graph[i].size() - j) <= graph[k - 1].size())
-                length = j + (graph[i].size() - j);
-            else
-                length = graph[k - 1].size();
-            i--;
-            m = graph[k - 1].size() - 1;
-            cout << i << "," << k << "," << j << "," << t << "," << n << "," << d2 << "," << length << "\n";
-            cout << i << "," << k << "," << l << "," << m << "," << s << "," << d1 << "," << length << "\n";
-            cout << "------------------\n";
-        }
-        else
-        {
-            if (l > 0 && j == graph[i].size())
-            {
-                k--;
-                m = l;
-                if ((graph[k].size() - l) <= graph[i + 1].size())
-                    length = graph[k].size() - l;
-                else
-                    length = graph[i + 1].size();
-                t = 0;
-            }
-            else
-            {
-                if (j == graph[i].size() && l == graph[k].size())
-                {
-                    t = 0;
-                    m = graph[k - 1].size() - 1;
-
-                    if (b)
-                        s = 1;
-                    else
-                        s = 0;
-                    if (flag)
-                        n = graph[k - 1].size() - 2;
-                    else
-                        n = graph[k - 1].size() - 1;
-                }
-            }
-        }
+		}
     }
-
-    return graph; // החזרת הגרף לאחר סיום החיבורים
+    flag = true;
+    k = 0, n = 2;
+	for (i = graph.size() - 1; i >= 0 && k<i; i--)
+	{
+		for (j = graph[i].size() - 1; j >= 0; j--)
+		{
+            if (flag)
+            {
+				if (j - 1 >= 0)
+				{
+					graph[i][j].next = &graph[i][j - 1];
+				}
+				else
+				{
+					graph[i][j].next = &graph[i - 1][graph[i - 1].size() - 1];
+				}
+				flag = false;
+			}
+			else
+			{
+				if (n < graph[i].size())
+				{
+					graph[i][j].next = &graph[k][n];
+					if (n + 2 <= graph[i].size() - 1)
+						n += 2;
+					else
+					{
+						if (n == graph[k].size() - 1)
+						{
+							n = 1;
+                            k++;
+						}
+						else
+						{
+							n = 0;
+                            k++ ;
+						}
+					}
+				}
+				flag = true;
+			}
+		}
+	}
+    graph[i + 1][j + 1].next = nullptr;
+    return graph;
 }
-
-
 
 // פונקציה ראשית
 vector<vector<Point>> processPoints(vector<Point> &points, int r)
@@ -283,15 +238,3 @@ int main()
     vector<vector<Point>> edges = processPoints(points, r);
     return 0;
 }
-//pointsOnLines[0][0].next = &pointsOnLines[0][1];
-//pointsOnLines[0][1].next = &pointsOnLines[3][2];
-//pointsOnLines[3][2].next = &pointsOnLines[3][1];
-//pointsOnLines[3][1].next = &pointsOnLines[0][2];
-//pointsOnLines[0][2].next = &pointsOnLines[0][3];
-//pointsOnLines[0][3].next = &pointsOnLines[3][0];
-//pointsOnLines[3][0].next = &pointsOnLines[2][2];
-//pointsOnLines[2][2].next = &pointsOnLines[1][0];
-//pointsOnLines[1][0].next = &pointsOnLines[1][1];
-//pointsOnLines[1][1].next = &pointsOnLines[2][1];
-//pointsOnLines[2][1].next = &pointsOnLines[2][0];
-//pointsOnLines[2][0].next = &pointsOnLines[1][2];
