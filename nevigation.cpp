@@ -5,10 +5,6 @@
 #include "nevigation.h"
 using namespace std;
 
-//מבנה של נקודה על גרף
-using Point = nevigation::Point;
-
-
 // חישוב מכפלה וקטורית
 double crossProduct(const Point &a, const Point &b, const Point &c) 
 {
@@ -31,7 +27,7 @@ vector<Point> convexHull(vector<Point> &points)
         }
         hull.push_back(p);
     }
-    size_t lowerSize = hull.size();
+    int lowerSize = hull.size();
     for (auto it = points.rbegin(); it != points.rend(); ++it) 
     {
         while (hull.size() > lowerSize && crossProduct(hull[hull.size() - 2], hull.back(), *it) <= 0) 
@@ -86,7 +82,7 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
     double dy = (B.y - A.y) / distance * step;
 
     for (int i = 0; i <= steps; i++) {
-        Point P = { A.x + i * dx, A.y + i * dy };
+        Point P = { A.x + i * dx, A.y + i * dy, A.z, nullptr};
         if (isOnLine(A, B, P)) {
             if (i == 0 && !flag) continue; // דילוג על הנקודה הראשונה אם flag שווה false
             points.push_back({ P.x, P.y, A.z, nullptr });
@@ -227,14 +223,14 @@ vector<vector<Point>> processPoints(vector<Point> &points, int r)
     return pointsOnLines;
 }
 
-int main() 
-{
-    vector<Point> points = { {5, 0, 5, nullptr}, {10,5,5, nullptr} , {5,10, 5, nullptr}, {0,5, 5, nullptr } };
-
-    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
-    double r;
-    cout << "Enter the drone's visual range.";
-    cin >> r;   
-    vector<vector<Point>> edges = processPoints(points, r);
-    return 0;
-}
+//int main() 
+//{
+//    vector<Point> points = { Point(5, 0, 5, nullptr), Point(10,5,5, nullptr) , Point (5,10, 5, nullptr), Point(0,5, 5, nullptr ) };
+//
+//    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
+//    double r;
+//    cout << "Enter the drone's visual range.";
+//    cin >> r;   
+//    vector<vector<Point>> edges = processPoints(points, r);
+//    return 0;
+//}
