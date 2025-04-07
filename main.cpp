@@ -121,24 +121,24 @@ void processSensorData(const string& sensor_measurement, FusionEKF& fusionEKF, T
     cout << "RMSE: [" << RMSE(0) << ", " << RMSE(1) << ", " << RMSE(2) << ", " << RMSE(3) << ", " << RMSE(4) << ", " << RMSE(5) << "]" << std::endl;
 }
 
-int main()
-{
-    FusionEKF fusionEKF;
-    Tools tools;
-    vector<VectorXd> estimations;
-    vector<VectorXd> ground_truth;
-
-    vector<string> sensor_data = {
-        "R 1.0 0.5 0.1 0.5 1477010443100000 1.1 2.1 0.3 0.5 0.6 0.7",
-        "G 37.7749 -122.4194 30.0 1477010443200000 1.2 2.2 0.4 0.6 0.7 0.8",
-        "I 0.1 0.2 0.3 0.01 0.02 0.03 0.001 0.002 0.003 1477010443300000 1.3 2.3 0.5 0.7 0.8 0.9",
-        "LIDAR 1.0 2.0 3.0 1477010443400000 1.4 2.4 0.6 0.8 0.9 1.0"
-    };
-
-    for (const auto& data : sensor_data)
-    {
-        processSensorData(data, fusionEKF, tools, estimations, ground_truth);
-    }
-
-    return 0;
-}
+//int main()
+//{
+//    FusionEKF fusionEKF;
+//    Tools tools;
+//    vector<VectorXd> estimations;
+//    vector<VectorXd> ground_truth;
+//
+//    vector<string> sensor_data = {
+//        "R 1.0 0.5 0.1 0.5 1477010443100000 1.1 2.1 0.3 0.5 0.6 0.7",
+//        "G 37.7749 -122.4194 30.0 1477010443200000 1.2 2.2 0.4 0.6 0.7 0.8",
+//        "I 0.1 0.2 0.3 0.01 0.02 0.03 0.001 0.002 0.003 1477010443300000 1.3 2.3 0.5 0.7 0.8 0.9",
+//        "LIDAR 1.0 2.0 3.0 1477010443400000 1.4 2.4 0.6 0.8 0.9 1.0"
+//    };
+//
+//    for (const auto& data : sensor_data)
+//    {
+//        processSensorData(data, fusionEKF, tools, estimations, ground_truth);
+//    }
+//
+//    return 0;
+//}

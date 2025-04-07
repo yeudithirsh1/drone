@@ -117,4 +117,58 @@
 //        this_thread::sleep_for(chrono::seconds(1)); // השהייה של שנייה בין מחזורים
 //    }
 //}
+//
+#include <opencv2/opencv.hpp>
+#include <iostream>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include <string>
+
+void openCamera() {
+    cv::VideoCapture cap(0); // פותח את המצלמה (0 היא המצלמה הראשונה המחוברת)
+
+    if (!cap.isOpened()) {
+        std::cerr << "Error: Could not open camera!" << std::endl;
+    }
+
+    // הגדרת הנתיב לתיקייה לשמירת התמונות
+    std::string folderPath = "C:/Users/This User/Documents/project/תמונות/"; // הנתיב לתיקייה
+    cv::Mat frame;
+    while (true) {
+        cap >> frame; // קורא פריים מהמצלמה
+        if (frame.empty()) {
+            std::cerr << "Error: Empty frame captured!" << std::endl;
+            break;
+        }
+
+        // קבלת הזמן הנוכחי בפורמט של תאריך ושעה
+        std::time_t now = std::time(0);
+        std::tm ltm;
+        localtime_s(&ltm, &now); // שימוש ב-localtime_s במקום localtime
+        std::ostringstream filename;
+        filename << folderPath << "frame_" << 1900 + ltm.tm_year << std::setw(2) << std::setfill('0') << 1 + ltm.tm_mon
+            << std::setw(2) << std::setfill('0') << ltm.tm_mday << "_"
+            << std::setw(2) << std::setfill('0') << ltm.tm_hour
+            << std::setw(2) << std::setfill('0') << ltm.tm_min
+            << std::setw(2) << std::setfill('0') << ltm.tm_sec << ".jpg"; // שמירת התמונה עם שם לפי הזמן
+
+        // שומר את התמונה בתיקייה שצוינה
+        cv::imwrite(filename.str(), frame);
+
+        // מציג את הווידאו בחלון
+        cv::imshow("Camera Feed", frame);
+
+        // לחיצה על ESC תסגור את החלון
+        if (cv::waitKey(1) == 27) {
+            break;
+        }
+    }
+
+    cap.release();
+    cv::destroyAllWindows();
+}
+
+
+
 

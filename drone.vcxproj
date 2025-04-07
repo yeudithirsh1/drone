@@ -107,10 +107,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\openCV\opencv\build\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\openCV\opencv\build\x64\vc16\lib</AdditionalLibraryDirectories>
+      <AdditionalDependencies>opencv_world4110d.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -130,7 +133,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="drone_commands.h" />
     <ClInclude Include="FusionEKF.h" />
+    <ClInclude Include="ICP.h" />
     <ClInclude Include="kalman_filter.h" />
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
@@ -139,11 +144,16 @@
     <ClInclude Include="tools.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="drone_commands.cpp" />
     <ClCompile Include="FusionEKF.cpp" />
+    <ClCompile Include="ICP.cpp" />
     <ClCompile Include="kalman_filter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nevigation.cpp" />
-    <ClCompile Include="PointsOnTheLines.cpp" />
+    <ClCompile Include="PointsOnTheLines.cpp">
+      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\openCV\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="test.cpp" />
     <ClCompile Include="tools.cpp" />
   </ItemGroup>
   <ItemGroup>
