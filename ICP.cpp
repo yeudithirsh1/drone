@@ -1,7 +1,6 @@
 #include "ICP.h"
 #include <iostream>
 #include <numeric>
-#include "icp.h"
 #include "Eigen/Eigen"
 
 using namespace std;

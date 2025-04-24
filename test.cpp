@@ -4,6 +4,8 @@
 #include <chrono> // שימוש בכותרת chrono במקום sys/time.h
 #include "icp.h"
 #include "Eigen/Eigen"
+#include <algorithm>
+#include <random>
 
 using namespace std;
 using namespace Eigen;
@@ -20,7 +22,7 @@ void my_random_shuffle(Eigen::MatrixXd& matrix);
 
 unsigned GetTickCount()
 {
-    using namespace std::chrono;
+    using namespace chrono;
     return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
@@ -44,19 +46,26 @@ float my_random(void) {
     return tmp / 1000;
 }
 
+
 void my_random_shuffle(Eigen::MatrixXd& matrix) {
     int row = matrix.rows();
-    vector<Eigen::Vector3d> temp;
+    std::vector<Eigen::Vector3d> temp;
     for (int jj = 0; jj < row; jj++) {
         temp.push_back(matrix.block<1, 3>(jj, 0));
     }
-    random_shuffle(temp.begin(), temp.end());
+
+    // מחולל אקראי
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    // ערבוב מודרני
+    std::shuffle(temp.begin(), temp.end(), g);
+
     for (int jj = 0; jj < row; jj++) {
         matrix.block<1, 3>(jj, 0) = temp[jj].transpose();
-        // cout << temp[jj].transpose() << endl;
-        // cout << "row  " << row << endl;
     }
 }
+
 
 Eigen::Matrix3d rotation_matrix(Eigen::Vector3d axis, float theta) {
     axis = axis / sqrt(axis.transpose() * axis);

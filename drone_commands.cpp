@@ -75,8 +75,8 @@ void updateAltitude(float& altitude, float rpm, float deltaTime, float mass, flo
 }
 
 
-void takeof(float mass, float targetAltitude, float A, float C_d, float C_t) {
-
+void takeof(float mass, float targetAltitude, float A, float C_d, float C_t) 
+{
     Motor motor1;//קדמי שמאלי
 	Motor motor2;//קדמי ימני
 	Motor motor3; //אחורי שמאלי

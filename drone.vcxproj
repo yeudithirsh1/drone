@@ -107,13 +107,14 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\openCV\opencv\build\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\openCV\opencv\build\include;c:\Users\This User\vcpkg\installed\x64-windows\include</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\openCV\opencv\build\x64\vc16\lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_world4110d.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\Users\This User\vcpkg\installed\x64-windows\lib;C:\openCV\opencv\build\x64\vc16\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>pcl_common.lib;pcl_io.lib;pcl_filters.lib;opencv_world4110d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -139,6 +140,8 @@
     <ClInclude Include="kalman_filter.h" />
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
+    <ClInclude Include="Object.h" />
+    <ClInclude Include="Synchronization.h" />
     <ClInclude Include="PointsOnTheLines.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="tools.h" />
@@ -150,6 +153,8 @@
     <ClCompile Include="kalman_filter.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nevigation.cpp" />
+    <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Synchronization.cpp" />
     <ClCompile Include="PointsOnTheLines.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\openCV\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
