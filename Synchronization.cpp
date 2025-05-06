@@ -6,31 +6,32 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <Eigen/Dense>
+#include "Synchronization.h"
 
 using namespace std;
 using namespace pcl;
 using namespace cv;
 using namespace Eigen;
 
-struct BoundingBox {
-    int xmin, ymin, xmax, ymax;
-};
+//struct BoundingBox {
+//    int xmin, ymin, xmax, ymax;
+//};
+//
+//struct CameraIntrinsics {
+//    float fx, fy, cx, cy;
+//};
 
-struct CameraIntrinsics {
-    float fx, fy, cx, cy;
-};
-
-Point2f projectPoint(const Vector3f& point_cam, const CameraIntrinsics& intrinsics) {
+Point2f Synchronization::projectPoint(const Vector3f& point_cam, const CameraIntrinsics& intrinsics) {
     float u = (intrinsics.fx * point_cam.x()) / point_cam.z() + intrinsics.cx;
     float v = (intrinsics.fy * point_cam.y()) / point_cam.z() + intrinsics.cy;
     return cv::Point2f(u, v);
 }
 
-bool isInsideBoundingBox(const Point2f& pt, const BoundingBox& box) {
+bool Synchronization::isInsideBoundingBox(const Point2f& pt, const BoundingBox& box) {
     return (pt.x >= box.xmin && pt.x <= box.xmax && pt.y >= box.ymin && pt.y <= box.ymax);
 }
 
-vector<PointXYZ> getObjectPointsInLidar(PointCloud<PointXYZ>::Ptr cloud,
+vector<PointXYZ> Synchronization::getObjectPointsInLidar(PointCloud<PointXYZ>::Ptr cloud,
     const Matrix4f& T_lidar_to_cam,
     const CameraIntrinsics& intrinsics,
     const BoundingBox& bbox) {
@@ -50,7 +51,7 @@ vector<PointXYZ> getObjectPointsInLidar(PointCloud<PointXYZ>::Ptr cloud,
     return result;
 }
 
-PointCloud<PointXYZ>::Ptr loadLidarFromFile(const string& filename) {
+PointCloud<PointXYZ>::Ptr Synchronization::loadLidarFromFile(const string& filename) {
     PointCloud<PointXYZ>::Ptr cloud(new PointCloud<PointXYZ>);
     ifstream file(filename);
     float x, y, z;
@@ -60,14 +61,14 @@ PointCloud<PointXYZ>::Ptr loadLidarFromFile(const string& filename) {
     return cloud;
 }
 
-CameraIntrinsics loadIntrinsicsFromFile(const string& filename) {
+CameraIntrinsics Synchronization::loadIntrinsicsFromFile(const string& filename) {
     ifstream file(filename);
     CameraIntrinsics intrinsics;
     file >> intrinsics.fx >> intrinsics.fy >> intrinsics.cx >> intrinsics.cy;
     return intrinsics;
 }
 
-vector<PointXYZ> Lidar_to_camera_ratio()
+vector<PointXYZ> Synchronization::Lidar_to_camera_ratio()
  {
     string lidar_file = "C:/Users/This User/Downloads/0000000371.txt";
     string intrinsics_file = "C:/Users/This User/Downloads/371.txt";

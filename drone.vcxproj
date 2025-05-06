@@ -141,6 +141,7 @@
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="Soldiers.h" />
     <ClInclude Include="Synchronization.h" />
     <ClInclude Include="PointsOnTheLines.h" />
     <ClInclude Include="resource.h" />
@@ -152,8 +153,10 @@
     <ClCompile Include="ICP.cpp" />
     <ClCompile Include="kalman_filter.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mainKalman.cpp" />
     <ClCompile Include="nevigation.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="Synchronization.cpp" />
     <ClCompile Include="PointsOnTheLines.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\openCV\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

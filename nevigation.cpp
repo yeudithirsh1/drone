@@ -6,7 +6,7 @@
 using namespace std;
 
 // חישוב מכפלה וקטורית
-double crossProduct(const Point &a, const Point &b, const Point &c) 
+double crossProduct(const Point &a, const Point &b, const Point &c)
 {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
@@ -14,7 +14,7 @@ double crossProduct(const Point &a, const Point &b, const Point &c)
 // מציאת נקודות קיצון
 vector<Point> convexHull(vector<Point> &points)
 {
-    sort(points.begin(), points.end(), [](const Point &a, const Point &b) 
+    sort(points.begin(), points.end(), [](Point &a, Point &b) 
     {
        return a.x < b.x || (a.x == b.x && a.y < b.y);
     });
@@ -41,18 +41,13 @@ vector<Point> convexHull(vector<Point> &points)
 }
 
 //(יצירת קשתות (מחבר את הנקודות בצורה מחזורית
-vector<pair<Point, Point>> createEdges(const vector<Point> &points) 
+vector<pair<Point, Point>> createEdges(vector<Point> &points) 
 {
     vector<pair<Point, Point>> edges;
     int n = points.size();
     for (int i = 0; i < n; ++i) 
     {
         edges.push_back({points[i], points[(i + 1) % n] });
-    }
-    for (const auto& edge : edges)
-    {
-        cout << "Edge: (" << edge.first.x << ", " << edge.first.y << ", " << edge.first.z << ") -> ("
-            << edge.second.x << ", " << edge.second.y << ", " << edge.second.z << ")\n";
     }
     return edges;
 }
@@ -185,7 +180,7 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph) {
 }
 
 // פונקציה ראשית
-vector<vector<Point>> processPoints(vector<Point> &points, int r)
+vector<vector<Point>> processPoints(vector<Point> &points, double r)
 {
     vector<Point> hull = convexHull(points);
     vector<pair<Point, Point>> edges = createEdges(hull);
@@ -205,32 +200,7 @@ vector<vector<Point>> processPoints(vector<Point> &points, int r)
         pointsOnLines.back().back().next = nullptr;
     }
     pointsOnLines = zigzag(pointsOnLines);
-    //הדפסת הגרף
-    for (const auto& line : pointsOnLines)
-    {
-        cout << "Points on line:\n";
-        for (const auto& p : line)
-        {
-            cout << "(" << p.x << ", " << p.y << ", " << p.z << ", next: (";
-            if (p.next != nullptr) {
-                cout << p.next->x << ", " << p.next->y << ", " << p.next->z << ")\n";
-            }
-            else {
-                cout << "nullptr\n";
-            }
-        }
-    }
     return pointsOnLines;
 }
 
-//int main() 
-//{
-//    vector<Point> points = { Point(5, 0, 5, nullptr), Point(10,5,5, nullptr) , Point (5,10, 5, nullptr), Point(0,5, 5, nullptr ) };
-//
-//    // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
-//    double r;
-//    cout << "Enter the drone's visual range.";
-//    cin >> r;   
-//    vector<vector<Point>> edges = processPoints(points, r);
-//    return 0;
-//}
+

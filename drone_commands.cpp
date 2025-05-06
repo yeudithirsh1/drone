@@ -6,26 +6,20 @@ using namespace std;
 // קבועים
 const float g = 9.81;  // תאוצת הכובד (מ/ש²)
 
-void startMotorsOrStopMotors(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4,bool d, float initialSpeed)
+void drone_commands::startMotorsOrStopMotors(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4,bool d, float initialSpeed)
 {
 
-    motor1.isActive = d;
-    motor2.isActive = d;
-    motor3.isActive = d;
-    motor4.isActive = d;
+    motor1.isActive = motor2.isActive = motor3.isActive = motor4.isActive = d;
 
     motor1.direction = -1; 
 	motor2.direction = 1;
 	motor3.direction = -1;
 	motor4.direction = 1;
 
-    motor1.speed = initialSpeed;
-    motor2.speed = initialSpeed;
-    motor3.speed = initialSpeed;
-    motor4.speed = initialSpeed;
+    motor1.speed = motor2.speed = motor3.speed = motor4.speed = initialSpeed;
 }
 
-void increaseMotorSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4) 
+void drone_commands::IncreaseEngineSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4)
 {
     // הגברת מהירות המנועים בהדרגה עד למקסימום
     if (motor1.speed < 100) 
@@ -37,7 +31,7 @@ void increaseMotorSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& moto
     }
 }
 
-float calculateAirDensity(float altitude_m) 
+float drone_commands::calculateAirDensity(float altitude_m)
 {
     float T0 = 288.15;       // טמפרטורת פני הים (קלווין)
     float P0 = 101325.0;     // לחץ פני הים (פסקל)
@@ -55,7 +49,7 @@ float calculateAirDensity(float altitude_m)
 
 
 // פונקציה לעדכון גובה על פי כוח הרמה, משקל ותנגודת האוויר
-void updateAltitude(float& altitude, float rpm, float deltaTime, float mass, float& velocity, float rho, float A, float C_d, float C_t)
+void drone_commands::updateAltitude(float& altitude, float rpm, float deltaTime, float mass, float& velocity, float rho, float A, float C_d, float C_t)
 {
 	float thrust = C_t * pow(rpm, 2);//חישוב כוח הרמה
 	float drag = 0.5 * C_d * A * rho * pow(velocity, 2); // חישוב כוח הגרר
@@ -75,7 +69,7 @@ void updateAltitude(float& altitude, float rpm, float deltaTime, float mass, flo
 }
 
 
-void takeof(float mass, float targetAltitude, float A, float C_d, float C_t) 
+void drone_commands::takeof(float mass, float targetAltitude, float A, float C_d, float C_t)
 {
     Motor motor1;//קדמי שמאלי
 	Motor motor2;//קדמי ימני
@@ -92,14 +86,14 @@ void takeof(float mass, float targetAltitude, float A, float C_d, float C_t)
     // סימולציה של המראה
     while (altitude < targetAltitude) 
     {
-        increaseMotorSpeed(motor1, motor2, motor3, motor4); // הגברת מהירות המנועים
+        decreaseMotorSpeed(motor1, motor2, motor3, motor4); // הגברת מהירות המנועים
         rho = calculateAirDensity(altitude); // חישוב צפיפות האוויר
         updateAltitude(altitude, mass, rpm, 1, velocity, rho, A, C_d, C_t);  // עדכון כל 0.1 שניות
         rpm = 5000 + (altitude / 10); // ככל שהרחפן גבוה יותר, ייתכן שתרצה להגדיל RPM מעט
     }
 }
 
-void decreaseMotorSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4)
+void drone_commands::decreaseMotorSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& motor4)
 {
     // הפחתת מהירות המנועים בהדרגה
     motor1.speed = max(motor1.speed - 5, 0); // הפחתת המהירות ב-5 כל פעם
@@ -110,7 +104,7 @@ void decreaseMotorSpeed(Motor& motor1, Motor& motor2, Motor& motor3, Motor& moto
 }
 
 
-void land(float mass, float targetAltitude, float A, float C_d, float C_t)
+void drone_commands::land(float mass, float targetAltitude, float A, float C_d, float C_t)
 {
     Motor motor1; // קדמי שמאלי
     Motor motor2; // קדמי ימני

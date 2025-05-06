@@ -11,7 +11,7 @@
 #define translation 0.1     // תרגום מקסימלי של הסט הבדיקה
 #define rotation 0.1        // סיבוב מקסימלי (ברדיאנים) של הסט הבדיקה
 using namespace std;
-
+using namespace Eigen;
 
 typedef struct {
     Eigen::Matrix4d trans;
@@ -24,7 +24,7 @@ typedef struct {
     vector<int> indices;
 } NEIGHBOR;
 
-Eigen::Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B);
+Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B);
 
 ICP_OUT icp(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, int max_iterations = 20, int tolerance = 0.001);
 

@@ -14,11 +14,11 @@ Eigen::Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::Matrix
     1/ JacobiSVD return U,S,V, S as a vector, "use U*S*Vt" to get original Matrix;
     2/ matrix type 'MatrixXd' or 'MatrixXf' matters.
     */
-    Eigen::Matrix4d T = Eigen::MatrixXd::Identity(4, 4);
-    Eigen::Vector3d centroid_A(0, 0, 0);
-    Eigen::Vector3d centroid_B(0, 0, 0);
-    Eigen::MatrixXd AA = A;
-    Eigen::MatrixXd BB = B;
+    Matrix4d T = MatrixXd::Identity(4, 4);
+    Vector3d centroid_A(0, 0, 0);
+    Vector3d centroid_B(0, 0, 0);
+    MatrixXd AA = A;
+    MatrixXd BB = B;
     int row = A.rows();
 
     for (int i = 0; i < row; i++) {
@@ -32,15 +32,15 @@ Eigen::Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::Matrix
         BB.block<1, 3>(i, 0) = B.block<1, 3>(i, 0) - centroid_B.transpose();
     }
 
-    Eigen::MatrixXd H = AA.transpose() * BB;
-    Eigen::MatrixXd U;
-    Eigen::VectorXd S;
-    Eigen::MatrixXd V;
-    Eigen::MatrixXd Vt;
-    Eigen::Matrix3d R;
-    Eigen::Vector3d t;
+    MatrixXd H = AA.transpose() * BB;
+    MatrixXd U;
+    VectorXd S;
+    MatrixXd V;
+    MatrixXd Vt;
+    Matrix3d R;
+    Vector3d t;
 
-    JacobiSVD<Eigen::MatrixXd> svd(H, ComputeFullU | ComputeFullV);
+    JacobiSVD<MatrixXd> svd(H, ComputeFullU | ComputeFullV);
     U = svd.matrixU();
     S = svd.singularValues();
     V = svd.matrixV();
@@ -61,14 +61,14 @@ Eigen::Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::Matrix
 
 }
 
-ICP_OUT icp(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, int max_iterations, int tolerance) {
+ICP_OUT icp(const MatrixXd& A, const MatrixXd& B, int max_iterations, int tolerance) {
     int row = A.rows();
-    Eigen::MatrixXd src = Eigen::MatrixXd::Ones(3 + 1, row);
-    Eigen::MatrixXd src3d = Eigen::MatrixXd::Ones(3, row);
-    Eigen::MatrixXd dst = Eigen::MatrixXd::Ones(3 + 1, row);
+    MatrixXd src = MatrixXd::Ones(3 + 1, row);
+    MatrixXd src3d = MatrixXd::Ones(3, row);
+    MatrixXd dst = MatrixXd::Ones(3 + 1, row);
     NEIGHBOR neighbor;
-    Eigen::Matrix4d T;
-    Eigen::MatrixXd dst_chorder = Eigen::MatrixXd::Ones(3, row);
+    Matrix4d T;
+    MatrixXd dst_chorder = MatrixXd::Ones(3, row);
     ICP_OUT result;
     int iter = 0;
 
@@ -113,7 +113,7 @@ ICP_OUT icp(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, int max_iteratio
 
 
 
-NEIGHBOR nearest_neighbot(const Eigen::MatrixXd& src, const Eigen::MatrixXd& dst) {
+NEIGHBOR nearest_neighbot(const MatrixXd& src, const MatrixXd& dst) {
     int row_src = src.rows();
     int row_dst = dst.rows();
     Eigen::Vector3d vec_src;
