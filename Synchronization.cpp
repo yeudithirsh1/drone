@@ -70,9 +70,9 @@ CameraIntrinsics Synchronization::loadIntrinsicsFromFile(const string& filename)
 
 vector<PointXYZ> Synchronization::Lidar_to_camera_ratio()
  {
-    string lidar_file = "C:/Users/This User/Downloads/0000000371.txt";
-    string intrinsics_file = "C:/Users/This User/Downloads/371.txt";
-    string image_file = "C:/Users/This User/Downloads/0000000371.png";
+    string lidar_file = "C:/Users/This User/Downloads/0000000371.txt";//ענן נקודות לידר
+    string intrinsics_file = "C:/Users/This User/Downloads/371.txt";//נתוני כיול של המצלמה
+    string image_file = "C:/Users/This User/Downloads/0000000371.png";//תמונה שזוהתה ע"י ה - YOLO
 
     // קריאת תמונה
     Mat image = imread(image_file);

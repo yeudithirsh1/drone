@@ -8,7 +8,7 @@ using namespace Eigen;
 
 
 
-Eigen::Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) {
+Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) {
     /*
     Notice:
     1/ JacobiSVD return U,S,V, S as a vector, "use U*S*Vt" to get original Matrix;

@@ -23,7 +23,8 @@ class nevigation
 
 double crossProduct(const Point &a, const Point &b, const Point &c);
 
-vector<Point> convexHull(vector<Point> &points);
+template <typename T>
+vector<Point> convexHull(vector<T> &points);
 
 vector<pair<Point, Point>> createEdges(vector<Point> &points);
 

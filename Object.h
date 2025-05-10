@@ -1,6 +1,7 @@
 #pragma once  
-class Object
-{
 
+struct point1
+{
+	double x, y, z;
 };
 
