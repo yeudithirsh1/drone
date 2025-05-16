@@ -38,6 +38,6 @@ int main()
     float A = 0.5; // Example area in m^2
     float C_d = 1.2; // Example drag coefficient
     float C_t = 0.8; // Example thrust coefficient
-    //Drone.takeof(mass, targetAltitude, A, C_d, C_t);
+    Drone.takeof(mass, targetAltitude, A, C_d, C_t);
     return 0;
 }

@@ -141,6 +141,7 @@
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="Sensors.h" />
     <ClInclude Include="Soldiers.h" />
     <ClInclude Include="Synchronization.h" />
     <ClInclude Include="PointsOnTheLines.h" />
@@ -156,6 +157,9 @@
     <ClCompile Include="mainKalman.cpp" />
     <ClCompile Include="nevigation.cpp" />
     <ClCompile Include="Object.cpp" />
+    <ClCompile Include="Reading_sensors.h" />
+    <ClCompile Include="Reading_sensors.cpp" />
+    <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="Synchronization.cpp" />
     <ClCompile Include="PointsOnTheLines.cpp">

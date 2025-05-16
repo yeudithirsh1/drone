@@ -1,39 +1,38 @@
 #pragma once  
 using namespace std;  
 
-struct Point  
+struct Vertex  
 {  
    double x, y, z;  
-   Point* next;  
+   Vertex* next;  
 
-   Point(double x_val, double y_val, double z_val, Point* next_val = nullptr) :  
+   Vertex(double x_val, double y_val, double z_val, Vertex* next_val = nullptr) :  
        x(x_val), y(y_val), z(z_val), next(next_val) {}  
 };  
 
 class nevigation  
 {  
  private:  
-     Point point;  
+     Vertex vertex;  
 
  public:  
-   nevigation(double x_val, double y_val, double z_val, Point* next_val) :  
-       point(x_val, y_val, z_val, next_val) {}  
+   nevigation(double x_val, double y_val, double z_val, Vertex* next_val) :  
+       vertex(x_val, y_val, z_val, next_val) {}  
 };
 
 
-double crossProduct(const Point &a, const Point &b, const Point &c);
+double crossProduct(const Vertex &a, const Vertex &b, const Vertex &c);
 
-template <typename T>
-vector<Point> convexHull(vector<T> &points);
+void convexHull(vector<Vertex>& Vertexs, vector<Vertex>& hall);
 
-vector<pair<Point, Point>> createEdges(vector<Point> &points);
+vector<pair<Vertex, Vertex>> createEdges(vector<Vertex> &Vertexs);
 
-vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag);
+vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, double step, bool flag);
 
-vector<vector<Point>> zigzag(vector<vector<Point>> graph);
+vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph);
 
-vector<vector<Point>> processPoints(vector<Point> &points, double r);
+vector<vector<Vertex>> processVertexs(vector<Vertex> &Vertexs, double r);
 
-bool isOnLine(Point A, Point B, Point P);
+bool isOnLine(Vertex A, Vertex B, Vertex P);
 
 

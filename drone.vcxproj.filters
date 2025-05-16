@@ -54,6 +54,15 @@
     <ClCompile Include="Soldiers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Reading_sensors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Reading_sensors.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Sensors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="nevigation.h">
@@ -90,6 +99,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Soldiers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Sensors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -6,70 +6,68 @@
 using namespace std;
 
 // חישוב מכפלה וקטורית
-double crossProduct(const Point& a, const Point& b, const Point& c)
+double crossProduct(const Vertex &a, const Vertex &b, const Vertex &c)
 {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
 // מציאת נקודות קיצון
-template <typename T>
-vector<Point> convexHull(vector<T>& points)
+void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
 {
-    sort(points.begin(), points.end(), [](Point& a, Point& b)
-        {
-            return a.x < b.x || (a.x == b.x && a.y < b.y);
-        });
-    vector<Point> hull;
-    for (const auto& p : points)
+    sort(Vertexs.begin(), Vertexs.end(), [](Vertex &a, Vertex &b) 
     {
-        while (hull.size() >= 2 && crossProduct(hull[hull.size() - 2], hull.back(), p) <= 0)
+       return a.x < b.x || (a.x == b.x && a.y < b.y);
+    });
+    vector<Vertex> hull;
+    for (const auto &p : Vertexs) 
+    {
+        while (hull.size() >= 2 && crossProduct(hull[hull.size() - 2], hull.back(), p) <= 0) 
         {
             hull.pop_back();
         }
         hull.push_back(p);
     }
     int lowerSize = hull.size();
-    for (auto it = points.rbegin(); it != points.rend(); ++it)
+    for (auto it = Vertexs.rbegin(); it != Vertexs.rend(); ++it) 
     {
-        while (hull.size() > lowerSize && crossProduct(hull[hull.size() - 2], hull.back(), *it) <= 0)
+        while (hull.size() > lowerSize && crossProduct(hull[hull.size() - 2], hull.back(), *it) <= 0) 
         {
             hull.pop_back();
         }
         hull.push_back(*it);
     }
     hull.pop_back(); // הסרת נקודת הסיום המיותרת
-    return hull;
 }
 
-// יצירת קשתות (מחבר את הנקודות בצורה מחזורית)
-vector<pair<Point, Point>> createEdges(vector<Point>& points)
+//(יצירת קשתות (מחבר את הנקודות בצורה מחזורית
+vector<pair<Vertex, Vertex>> createEdges(vector<Vertex> &Vertexs) 
 {
-    vector<pair<Point, Point>> edges;
-    int n = points.size();
-    for (int i = 0; i < n; ++i)
+    vector<pair<Vertex, Vertex>> edges;
+    int n = Vertexs.size();
+    for (int i = 0; i < n; ++i) 
     {
-        edges.push_back({ points[i], points[(i + 1) % n] });
+        edges.push_back({Vertexs[i], Vertexs[(i + 1) % n] });
     }
     return edges;
 }
 
-bool isOnLine(Point A, Point B, Point P) {
+bool isOnLine(Vertex A, Vertex B, Vertex P) {
     if (A.x == B.x) { // בדיקה אם הישר אנכי
-        return std::abs(P.x - A.x) < 1e-6;
+        return std::abs(P.x - A.x) < 1e-6; // כל נקודה עם אותו x נמצאת על הישר
     }
-    double slope = (B.y - A.y) / (B.x - A.x);
-    double expectedY = slope * (P.x - A.x) + A.y;
-    return std::abs(P.y - expectedY) < 1e-6;
+    double slope = (B.y - A.y) / (B.x - A.x); // חישוב שיפוע הישר
+    double expectedY = slope * (P.x - A.x) + A.y; // חישוב ה-y הצפוי של P על פי משוואת הישר
+    return std::abs(P.y - expectedY) < 1e-6; // סובלנות קטנה לשגיאות חישוב
 }
 
-// שמירת כל הנקודות שנמצאות על ישר עם הפרש של רדיוס בין כל נקודה
-vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
-    vector<Point> points;
+//שמירת כל הנקודות שנמצאות על ישר עם הפרש של רדיוס בין כל נקודה
+vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, double step, bool flag) {
+    vector<Vertex> Vertexs;
     if (A.y == B.y) {
         if (flag)
-            points.push_back({ A.x, A.y, A.z, nullptr });
-        points.push_back({ B.x, B.y, A.z, nullptr });
-        return points;
+            Vertexs.push_back({ A.x, A.y, A.z, nullptr });
+        Vertexs.push_back({ B.x, B.y, A.z, nullptr });
+        return Vertexs;
     }
 
     double distance = sqrt(pow(B.x - A.x, 2) + pow(B.y - A.y, 2));
@@ -78,23 +76,24 @@ vector<Point> generatePointsOnLine(Point A, Point B, double step, bool flag) {
     double dy = (B.y - A.y) / distance * step;
 
     for (int i = 0; i <= steps; i++) {
-        Point P = { A.x + i * dx, A.y + i * dy, A.z, nullptr };
+        Vertex P = { A.x + i * dx, A.y + i * dy, A.z, nullptr};
         if (isOnLine(A, B, P)) {
-            if (i == 0 && !flag) continue;
-            points.push_back({ P.x, P.y, A.z, nullptr });
+            if (i == 0 && !flag) continue; // דילוג על הנקודה הראשונה אם flag שווה false
+            Vertexs.push_back({ P.x, P.y, A.z, nullptr });
         }
     }
 
-    return points;
+    return Vertexs;
 }
 
-vector<vector<Point>> zigzag(vector<vector<Point>> graph) {
-    bool flag = true;
-    int k = graph.size() - 1, n = graph[graph.size() - 1].size() - 1, i, j;
-    for (i = 0; i < graph.size() && i < k; i++)
+vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
+	bool flag = true;
+    int k = graph.size() - 1, n = graph[graph.size() - 1].size() - 1,
+        i, j;
+    for(i = 0; i< graph.size() && i < k; i++)
     {
-        for (j = 0; j < graph[i].size(); j++)
-        {
+		for (j = 0; j < graph[i].size(); j++)
+		{
             if (flag)
             {
                 if (j + 1 < graph[i].size())
@@ -109,13 +108,13 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph) {
             }
             else
             {
-                if (n >= 0)
-                {
-                    graph[i][j].next = &graph[k][n];
-                    if (n - 2 >= 0)
-                        n -= 2;
-                    else
-                    {
+				if (n >= 0)
+				{
+					graph[i][j].next = &graph[k][n];
+					if (n - 2 >= 0)
+						n -= 2;
+					else
+					{
                         if (n == 0)
                         {
                             n = graph[k - 1].size() - 2;
@@ -124,103 +123,84 @@ vector<vector<Point>> zigzag(vector<vector<Point>> graph) {
                         else
                         {
                             n = graph[k - 1].size() - 1;
-                            k--;
+							k--;
                         }
-                    }
-                }
+					}
+				}
                 flag = true;
             }
-        }
+		}
     }
     flag = true;
     k = 0, n = 2;
-    for (i = graph.size() - 1; i >= 0 && k < i; i--)
-    {
-        for (j = graph[i].size() - 1; j >= 0; j--)
-        {
+	for (i = graph.size() - 1; i >= 0 && k<i; i--)
+	{
+		for (j = graph[i].size() - 1; j >= 0; j--)
+		{
             if (flag)
             {
-                if (j - 1 >= 0)
-                {
-                    graph[i][j].next = &graph[i][j - 1];
-                }
-                else
-                {
-                    graph[i][j].next = &graph[i - 1][graph[i - 1].size() - 1];
-                }
-                flag = false;
-            }
-            else
-            {
-                if (n < graph[i].size())
-                {
-                    graph[i][j].next = &graph[k][n];
-                    if (n + 2 <= graph[i].size() - 1)
-                        n += 2;
-                    else
-                    {
-                        if (n == graph[k].size() - 1)
-                        {
-                            n = 1;
+				if (j - 1 >= 0)
+				{
+					graph[i][j].next = &graph[i][j - 1];
+				}
+				else
+				{
+					graph[i][j].next = &graph[i - 1][graph[i - 1].size() - 1];
+				}
+				flag = false;
+			}
+			else
+			{
+				if (n < graph[i].size())
+				{
+					graph[i][j].next = &graph[k][n];
+					if (n + 2 <= graph[i].size() - 1)
+						n += 2;
+					else
+					{
+						if (n == graph[k].size() - 1)
+						{
+							n = 1;
                             k++;
-                        }
-                        else
-                        {
-                            n = 0;
-                            k++;
-                        }
-                    }
-                }
-                flag = true;
-            }
-        }
-    }
+						}
+						else
+						{
+							n = 0;
+                            k++ ;
+						}
+					}
+				}
+				flag = true;
+			}
+		}
+	}
     graph[i + 1][j + 1].next = nullptr;
     return graph;
 }
 
-// הדפסת הגרף
-void printGraph(const vector<vector<Point>>& graph) {
-    cout << "Graph structure:\n";
-    for (int i = 0; i < graph.size(); ++i) {
-        for (int j = 0; j < graph[i].size(); ++j) {
-            const Point& p = graph[i][j];
-            cout << "Point(" << p.x << ", " << p.y << ", " << p.z << ")";
-            if (p.next) {
-                cout << " -> Next(" << p.next->x << ", " << p.next->y << ", " << p.next->z << ")";
-            }
-            else {
-                cout << " -> Next(nullptr)";
-            }
-            cout << endl;
-        }
-    }
-}
-
 // פונקציה ראשית
-vector<vector<Point>> processPoints(vector<Point>& points, double r)
+vector<vector<Vertex>> processVertexs(vector<Vertex> &Vertexs, double r)
 {
-    vector<Point> hull = convexHull(points);
-    vector<pair<Point, Point>> edges = createEdges(hull);
-    vector<vector<Point>> pointsOnLines;
-    bool flag = true;
+    vector<Vertex> hull;
+	convexHull(Vertexs, hull);
+    vector<pair<Vertex, Vertex>> edges = createEdges(hull);
+    vector<vector<Vertex>> VertexsOnLines;
+	bool flag = true;
     for (int i = 0; i < edges.size(); ++i)
-    {
+    { 
         if (i != 0)
-        {
-            flag = false;
-        }
-        vector<Point> linePoints = generatePointsOnLine(edges[i].first, edges[i].second, r, flag);
-        pointsOnLines.push_back(linePoints);
+		{
+			flag = false;
+		}
+        vector<Vertex> lineVertexs = generateVertexsOnLine(edges[i].first, edges[i].second, r, flag);
+        VertexsOnLines.push_back(lineVertexs);
     }
-    if (!pointsOnLines.empty() && !pointsOnLines.back().empty())
+    if (!VertexsOnLines.empty() && !VertexsOnLines.back().empty()) 
     {
-        pointsOnLines.back().back().next = nullptr;
+        VertexsOnLines.back().back().next = nullptr;
     }
-    pointsOnLines = zigzag(pointsOnLines);
-
-    // הדפסת הגרף
-    printGraph(pointsOnLines);
-
-    return pointsOnLines;
+    VertexsOnLines = zigzag(VertexsOnLines);
+    return VertexsOnLines;
 }
+
+
