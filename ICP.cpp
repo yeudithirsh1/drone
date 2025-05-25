@@ -9,17 +9,17 @@ using namespace Eigen;
 
 
 
-Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) {
+Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) {
     /*
     Notice:
     1/ JacobiSVD return U,S,V, S as a vector, "use U*S*Vt" to get original Matrix;
-    2/ matrix type 'MatrixXd' or 'MatrixXf' matters.
+    2/ matrix type 'MatrixXf' or 'MatrixXf' matters.
     */
-    Matrix4d T = MatrixXd::Identity(4, 4);
-    Vector3d centroid_A(0, 0, 0);
-    Vector3d centroid_B(0, 0, 0);
-    MatrixXd AA = A;
-    MatrixXd BB = B;
+    Matrix4f T = MatrixXf::Identity(4, 4);
+    Vector3f centroid_A(0, 0, 0);
+    Vector3f centroid_B(0, 0, 0);
+    MatrixXf AA = A;
+    MatrixXf BB = B;
     int row = A.rows();
 
     for (int i = 0; i < row; i++) {
@@ -33,15 +33,15 @@ Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) 
         BB.block<1, 3>(i, 0) = B.block<1, 3>(i, 0) - centroid_B.transpose();
     }
 
-    MatrixXd H = AA.transpose() * BB;
-    MatrixXd U;
-    VectorXd S;
-    MatrixXd V;
-    MatrixXd Vt;
-    Matrix3d R;
-    Vector3d t;
+    MatrixXf H = AA.transpose() * BB;
+    MatrixXf U;
+    VectorXf S;
+    MatrixXf V;
+    MatrixXf Vt;
+    Matrix3f R;
+    Vector3f t;
 
-    JacobiSVD<MatrixXd> svd(H, ComputeFullU | ComputeFullV);
+    JacobiSVD<MatrixXf> svd(H, ComputeFullU | ComputeFullV);
     U = svd.matrixU();
     S = svd.singularValues();
     V = svd.matrixV();
@@ -62,14 +62,14 @@ Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B) 
 
 }
 
-ICP_OUT icp(const MatrixXd& A, const MatrixXd& B, int max_iterations, int tolerance) {
+ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolerance) {
     int row = A.rows();
-    MatrixXd src = MatrixXd::Ones(3 + 1, row);
-    MatrixXd src3d = MatrixXd::Ones(3, row);
-    MatrixXd dst = MatrixXd::Ones(3 + 1, row);
+    MatrixXf src = MatrixXf::Ones(3 + 1, row);
+    MatrixXf src3d = MatrixXf::Ones(3, row);
+    MatrixXf dst = MatrixXf::Ones(3 + 1, row);
     NEIGHBOR neighbor;
-    Matrix4d T;
-    MatrixXd dst_chorder = MatrixXd::Ones(3, row);
+    Matrix4f T;
+    MatrixXf dst_chorder = MatrixXf::Ones(3, row);
     ICP_OUT result;
     int iter = 0;
 
@@ -80,8 +80,8 @@ ICP_OUT icp(const MatrixXd& A, const MatrixXd& B, int max_iterations, int tolera
 
     }
 
-    double prev_error = 0;
-    double mean_error = 0;
+    float prev_error = 0;
+    float mean_error = 0;
     for (int i = 0; i < max_iterations; i++) {
         neighbor = nearest_neighbot(src3d.transpose(), B);
 
@@ -114,14 +114,14 @@ ICP_OUT icp(const MatrixXd& A, const MatrixXd& B, int max_iterations, int tolera
 
 
 
-NEIGHBOR nearest_neighbot(const Eigen::MatrixXd& src, const Eigen::MatrixXd& dst) {
+NEIGHBOR nearest_neighbot(const Eigen::MatrixXf& src, const Eigen::MatrixXf& dst) {
     KDTree tree(dst);
     NEIGHBOR neigh;
 
     for (int i = 0; i < src.rows(); ++i) {
-        Eigen::Vector3d query = src.row(i).transpose();
+        Eigen::Vector3f query = src.row(i).transpose();
         int nearest_idx = -1;
-        double best_dist_sq = std::numeric_limits<double>::max();
+        float best_dist_sq = std::numeric_limits<float>::max();
         tree.nearest(query, nearest_idx, best_dist_sq);
         neigh.indices.push_back(nearest_idx);
         neigh.distances.push_back(std::sqrt(best_dist_sq));
@@ -130,7 +130,7 @@ NEIGHBOR nearest_neighbot(const Eigen::MatrixXd& src, const Eigen::MatrixXd& dst
     return neigh;
 }
 
-float dist(const Eigen::Vector3d& pta, const Eigen::Vector3d& ptb) {
+float dist(const Eigen::Vector3f& pta, const Eigen::Vector3f& ptb) {
     return sqrt((pta[0] - ptb[0]) * (pta[0] - ptb[0]) + (pta[1] - ptb[1]) * (pta[1] - ptb[1]) + (pta[2] - ptb[2]) * (pta[2] - ptb[2]));
 }
 

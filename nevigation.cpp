@@ -6,7 +6,7 @@
 using namespace std;
 
 // חישוב מכפלה וקטורית
-double crossProduct(const Vertex &a, const Vertex &b, const Vertex &c)
+float crossProduct(const Vertex &a, const Vertex &b, const Vertex &c)
 {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
@@ -54,13 +54,13 @@ bool isOnLine(Vertex A, Vertex B, Vertex P) {
     if (A.x == B.x) { // בדיקה אם הישר אנכי
         return std::abs(P.x - A.x) < 1e-6; // כל נקודה עם אותו x נמצאת על הישר
     }
-    double slope = (B.y - A.y) / (B.x - A.x); // חישוב שיפוע הישר
-    double expectedY = slope * (P.x - A.x) + A.y; // חישוב ה-y הצפוי של P על פי משוואת הישר
+    float slope = (B.y - A.y) / (B.x - A.x); // חישוב שיפוע הישר
+    float expectedY = slope * (P.x - A.x) + A.y; // חישוב ה-y הצפוי של P על פי משוואת הישר
     return std::abs(P.y - expectedY) < 1e-6; // סובלנות קטנה לשגיאות חישוב
 }
 
 //שמירת כל הנקודות שנמצאות על ישר עם הפרש של רדיוס בין כל נקודה
-vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, double step, bool flag) {
+vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float step, bool flag) {
     vector<Vertex> Vertexs;
     if (A.y == B.y) {
         if (flag)
@@ -69,10 +69,10 @@ vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, double step, bool flag)
         return Vertexs;
     }
 
-    double distance = sqrt(pow(B.x - A.x, 2) + pow(B.y - A.y, 2));
+    float distance = sqrt(pow(B.x - A.x, 2) + pow(B.y - A.y, 2));
     int steps = distance / step;
-    double dx = (B.x - A.x) / distance * step;
-    double dy = (B.y - A.y) / distance * step;
+    float dx = (B.x - A.x) / distance * step;
+    float dy = (B.y - A.y) / distance * step;
 
     for (int i = 0; i <= steps; i++) {
         Vertex P = { A.x + i * dx, A.y + i * dy, A.z, nullptr};
@@ -178,7 +178,7 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 }
 
 // פונקציה ראשית
-vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, double fieldView)
+vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, float fieldView)
 {
     vector<Vertex> hull;
 	convexHull(Vertexs, hull);

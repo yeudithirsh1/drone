@@ -14,7 +14,7 @@ using namespace std;
 using namespace Eigen;
 
 typedef struct {
-    Eigen::Matrix4d trans;
+    Eigen::Matrix4f trans;
     vector<float> distances;
     int iter;
 }  ICP_OUT;
@@ -24,13 +24,13 @@ typedef struct {
     vector<int> indices;
 } NEIGHBOR;
 
-Matrix4d best_fit_transform(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B);
+Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B);
 
-ICP_OUT icp(const Eigen::MatrixXd& A, const Eigen::MatrixXd& B, int max_iterations = 20, int tolerance = 0.001);
+ICP_OUT icp(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B, int max_iterations = 20, int tolerance = 0.001);
 
 // throughout method
-NEIGHBOR nearest_neighbot(const Eigen::MatrixXd& src, const Eigen::MatrixXd& dst);
-float dist(const Eigen::Vector3d& pta, const Eigen::Vector3d& ptb);
+NEIGHBOR nearest_neighbot(const Eigen::MatrixXf& src, const Eigen::MatrixXf& dst);
+float dist(const Eigen::Vector3f& pta, const Eigen::Vector3f& ptb);
 
 #endif
 

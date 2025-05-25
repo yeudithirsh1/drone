@@ -63,7 +63,7 @@ float findMostRightFreeGap(const vector<Point>& cloud,
         || point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) > 0)
            returnPoint = Intersection_points(droneStart, droneTarget, dronePos);
 
-    vector<Point2D> projected;
+    vector<Point2f> projected;
     for (const auto& p : cloud) {
         float dz1 = dronePos.z + Physical_height / 2;
         float dz2 = dronePos.z - Physical_height / 2;
@@ -110,28 +110,9 @@ float findMostRightFreeGap(const vector<Point>& cloud,
     return angle;
 }
 
-//פונקציה לחיבור ענני נקודות
-//vector<Point> mergePointClouds(const vector<vector<Point>>& clouds) {
-//    vector<Point> merged;
-//
-//    // מחשבים כמה נקודות בסך הכל כדי להזמין מקום מראש
-//    size_t totalSize = 0;
-//    for (const auto& cloud : clouds) {
-//        totalSize += cloud.size();
-//    }
-//    merged.reserve(totalSize);
-//
-//    // מוסיפים כל ענן בנפרד
-//    for (const auto& cloud : clouds) {
-//        merged.insert(merged.end(), cloud.begin(), cloud.end());
-//    }
-//
-//    return merged;
-//}
-
 
 //פונקציה לסכימת אורך המסלול מימין ומשמאל
-float computePolylineLength(const vector<Point2D>& points) {
+float computePolylineLength(const vector<Point2f>& points) {
     float length = 0.0f;
     for (size_t i = 1; i < points.size(); ++i) {
         float dx = points[i].x - points[i - 1].x;
@@ -141,13 +122,13 @@ float computePolylineLength(const vector<Point2D>& points) {
     return length;
 }
 
-double crossProduct(const Point2D& a, const Point2D& b, const Point2D& c)
+float crossProduct(const Point2f& a, const Point2f& b, const Point2f& c)
 {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
 // מציאת המעטפה הקמורה עם נקודות בכיוון השעון
-void convexHullClockwise(vector<Point2D> turnPoints,vector<Point2D>& hull)
+void convexHullClockwise(vector<Point2f> turnPoints,vector<Point2f>& hull)
 {
     if (turnPoints.size() <= 1)
     {
@@ -155,7 +136,7 @@ void convexHullClockwise(vector<Point2D> turnPoints,vector<Point2D>& hull)
         return;
     }
     // מיון הנקודות לפי x ואז y
-    sort(turnPoints.begin(), turnPoints.end(), [](const Point2D& a, const Point2D& b)
+    sort(turnPoints.begin(), turnPoints.end(), [](const Point2f& a, const Point2f& b)
         {
             return a.x < b.x || (a.x == b.x && a.y < b.y);
         });
@@ -192,14 +173,14 @@ void analyzeDroneTurnsAndHull(const Point& startPos,
     float deltaZ,
     float radius,
     float minGapWidth,
-    const Point2D& crossingPoint,
-    const vector<Point2D>& turnPoints) {
+    const Point2f& crossingPoint,
+    const vector<Point2f>& turnPoints) {
 
-    vector<Point2D> hull;
+    vector<Point2f> hull;
     convexHullClockwise(turnPoints, hull);
 
-    vector<Point2D> rightOfLine;
-    vector<Point2D> leftOfLine;
+    vector<Point2f> rightOfLine;
+    vector<Point2f> leftOfLine;
 
     for (const auto& p : hull) {
         float dx1 = goalPos.x - startPos.x;
@@ -237,35 +218,35 @@ void analyzeDroneTurnsAndHull(const Point& startPos,
 }
 
 // Normalize a vector
-Point2D normalize(const Point2D& v) {
-    double len = std::sqrt(v.x * v.x + v.y * v.y);
+Point2f normalize(const Point2f& v) {
+    float len = std::sqrt(v.x * v.x + v.y * v.y);
     if (len == 0) return { 0, 0 };
     return { static_cast<float> (v.x / len),static_cast<float> (v.y / len) };
 }
 
 // Rotate 90 degrees counter-clockwise to get normal vector
-Point2D getNormal(const Point2D& v) {
+Point2f getNormal(const Point2f& v) {
     return { -v.y, v.x };
 }
 
 // Inflate or deflate polygon
-std::vector<Point2D> inflatePolygon(const std::vector<Point2D>& polygon, double distance) {
+std::vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float distance) {
     int n = polygon.size();
-    std::vector<Point2D> inflated;
+    std::vector<Point2f> inflated;
 
     for (int i = 0; i < n; ++i) {
-        Point2D prev = polygon[(i - 1 + n) % n];
-        Point2D curr = polygon[i];
-        Point2D next = polygon[(i + 1) % n];
+        Point2f prev = polygon[(i - 1 + n) % n];
+        Point2f curr = polygon[i];
+        Point2f next = polygon[(i + 1) % n];
 
-        Point2D edge1 = normalize(curr - prev);
-        Point2D edge2 = normalize(next - curr);
+        Point2f edge1 = normalize(curr - prev);
+        Point2f edge2 = normalize(next - curr);
 
-        Point2D normal1 = getNormal(edge1);
-        Point2D normal2 = getNormal(edge2);
+        Point2f normal1 = getNormal(edge1);
+        Point2f normal2 = getNormal(edge2);
 
-        Point2D avgNormal = normalize(normal1 + normal2);
-        Point2D inflatedPoint = curr + avgNormal * distance;
+        Point2f avgNormal = normalize(normal1 + normal2);
+        Point2f inflatedPoint = curr + avgNormal * distance;
 
         inflated.push_back(inflatedPoint);
     }
@@ -276,10 +257,7 @@ std::vector<Point2D> inflatePolygon(const std::vector<Point2D>& polygon, double 
 
 
 
-
-
-
-void proximity(const vector<Eigen::Vector3d>& points, int idx,
+void proximity(const vector<Eigen::Vector3f>& points, int idx,
     vector<float>& cluster, std::vector<bool>& processed, KDTree* tree, float distanceTol)
 {
     processed[idx] = true;
@@ -293,7 +271,7 @@ void proximity(const vector<Eigen::Vector3d>& points, int idx,
 }
 
 
-vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3d>& points,
+vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3f>& points,
     KDTree* tree, float distanceTol)
 {
     vector<vector<float>> clusters;
@@ -314,7 +292,7 @@ vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3d>& points,
 
 
 
-float computeClusterSize(const vector<Eigen::Vector3d>& points, const vector<float>& cluster)
+float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<float>& cluster)
 {
     float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
     float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
@@ -341,7 +319,7 @@ float computeClusterSize(const vector<Eigen::Vector3d>& points, const vector<flo
 int main()
 {
     // יצירת נקודות לדוגמה
-    vector<Eigen::Vector3d> points = {
+    vector<Eigen::Vector3f> points = {
         {1.0, 2.0, 0.0},
         {1.2, 2.1, 0.1},
         {8.0, 9.0, 0.0},

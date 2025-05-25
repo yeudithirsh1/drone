@@ -140,7 +140,7 @@
     <ClInclude Include="GPS.h" />
     <ClInclude Include="ICP.h" />
     <ClInclude Include="KDTree.h" />
-    <ClInclude Include="LIDAR.h" />
+    <ClInclude Include="Lida.h" />
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
     <ClInclude Include="Object.h" />
@@ -157,7 +157,7 @@
     <ClCompile Include="GPS.cpp" />
     <ClCompile Include="ICP.cpp" />
     <ClCompile Include="KDTree.cpp" />
-    <ClCompile Include="LIDAR.cpp" />
+    <ClCompile Include="Lida.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainKalman.cpp" />
     <ClCompile Include="nevigation.cpp" />

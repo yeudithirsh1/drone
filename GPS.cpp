@@ -10,7 +10,7 @@ using namespace std;
 void GPS::UpdatePossion()
 {  
    ifstream file("src/GPS.txt");  
-   double pos1, pos2, pos3;  
+   float pos1, pos2, pos3;  
    try  
    {  
        string line;  
@@ -26,8 +26,8 @@ void GPS::UpdatePossion()
        }  
        file.close();  
    }  
-   catch (const std::exception& error)  
+   catch (const exception& error)  
    {  
-       std::cout << "Error: " << error.what() << std::endl;  
+       cout << "Error: " << error.what() << endl;  
    }  
 }

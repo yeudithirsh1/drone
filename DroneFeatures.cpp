@@ -4,12 +4,7 @@
 #include <cmath>
 
 using namespace std;
-Drone::Drone()
-	:
-	rpm(0.0f), rho(1.225f), velocity(0.0f), acceleration(0.0f), yaw(0),
-	motor1(true, 0, -1), motor2(true, 0, 1), motor3(true, 0, -1), motor4(true, 0, 1),
-	droneDim(0.4f, 0.4f, 0.15f), dronePos(0.0f, 0.0f, 0.0f),
-	SpeedInAxes(0.0f, 0.0f, 0.0f), AccelerationInAxes(0.0f, 0.0f, 0.0f) {}
+Drone::Drone() {}
 int Drone::getMaxRPM()
 {
 	return maxRPM;
@@ -152,14 +147,14 @@ Acceleration Drone::getAccelerationInAxes()
 }
 
 struct Vector3 {
-	double x, y, z;
+	float x, y, z;
 };
 
-void Drone::computeLinearAcceleration(const vector<Eigen::Vector3f>& velocities, const vector<double>& times) {
+void Drone::computeLinearAcceleration(const vector<Eigen::Vector3f>& velocities, const vector<float>& times) {
 	vector<Eigen::Vector3f> accelerations;
 
 	for (size_t i = 1; i < velocities.size(); ++i) {
-		double dt = times[i] - times[i - 1];
+		float dt = times[i] - times[i - 1];
 		if (dt == 0) {
 			// Prevent division by zero
 			accelerations.push_back(Eigen::Vector3f(0, 0, 0));

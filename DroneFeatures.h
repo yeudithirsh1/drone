@@ -6,33 +6,42 @@
 using std::vector; // Use the std namespace for vector  
 using Eigen::Vector3f; // Use Eigen's Vector3f for 3D vector representation  
 
-struct Motor {  
-  bool isActive; // האם המנוע פעיל  
-  float speed; // מהירות המנוע (ב- RPM)  
-  int direction; // כיוון המנוע (1 או -1)  
-  Motor(bool isActive, int speed, int direction) : isActive(isActive), speed(speed), direction(direction) {} // בנאי  
-};  
+struct Motor {
+	bool isActive;     // האם המנוע פעיל
+	float speed;       // מהירות המנוע (ב-RPM)
+	int direction;     // כיוון המנוע (1 או -1)
 
-struct droneDimension {  
-  float length;  
-  float width;  
-  float height;  
-  droneDimension(float l, float w, float h) : length(l), width(w), height(h) {} // בנאי  
-};  
+	Motor() : isActive(false), speed(0.0f), direction(1) {}
+	Motor(bool active, float spd, int dir) : isActive(active), speed(spd), direction(dir) {}
 
-struct Velocity {  
-  float vx;  
-  float vy;  
-  float vz;  
-  Velocity(float x, float y, float z) : vx(x), vy(y), vz(z) {} // בנאי  
-};  
+};
 
-struct Acceleration {  
-  float ax;  
-  float ay;  
-  float az;  
-  Acceleration(float x, float y, float z) : ax(x), ay(y), az(z) {} // בנאי  
-};  
+struct droneDimension {
+	float length;
+	float width;
+	float height;
+
+	droneDimension() : length(0.0f), width(0.0f), height(0.0f) {}
+	droneDimension(float l, float w, float h) : length(l), width(w), height(h) {}
+};
+
+struct Velocity {
+	float vx;
+	float vy;
+	float vz;
+
+	Velocity() : vx(0.0f), vy(0.0f), vz(0.0f) {}
+	Velocity(float x, float y, float z) : vx(x), vy(y), vz(z) {}
+};
+
+struct Acceleration {
+	float ax;
+	float ay;
+	float az;
+
+	Acceleration() : ax(0.0f), ay(0.0f), az(0.0f) {}
+	Acceleration(float x, float y, float z) : ax(x), ay(y), az(z) {}
+};
 
 class Drone {  
 private:  
@@ -94,5 +103,5 @@ public:
   void setSpeedInAxes(Velocity SpeedInAxes);  
   Acceleration getAccelerationInAxes();  
   void setAccelerationInAxes(Acceleration AccelerationInAxes);  
-  void computeLinearAcceleration(const vector<Vector3f>& velocities, const vector<double>& times);  
+  void computeLinearAcceleration(const vector<Vector3f>& velocities, const vector<float>& times);  
 };

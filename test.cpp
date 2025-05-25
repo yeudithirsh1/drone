@@ -15,10 +15,10 @@ using namespace Eigen;
     #endif
 
 float my_random(void);
-Eigen::Matrix3d rotation_matrix(Eigen::Vector3d axis, float theta);
+Eigen::Matrix3f rotation_matrix(Eigen::Vector3f axis, float theta);
 void test_best_fit(void);
 void test_icp(void);
-void my_random_shuffle(Eigen::MatrixXd& matrix);
+void my_random_shuffle(Eigen::MatrixXf& matrix);
 
 unsigned GetTickCount()
 {
@@ -47,9 +47,9 @@ float my_random(void) {
 }
 
 
-void my_random_shuffle(Eigen::MatrixXd& matrix) {
+void my_random_shuffle(Eigen::MatrixXf& matrix) {
     int row = matrix.rows();
-    std::vector<Eigen::Vector3d> temp;
+    std::vector<Eigen::Vector3f> temp;
     for (int jj = 0; jj < row; jj++) {
         temp.push_back(matrix.block<1, 3>(jj, 0));
     }
@@ -67,15 +67,15 @@ void my_random_shuffle(Eigen::MatrixXd& matrix) {
 }
 
 
-Eigen::Matrix3d rotation_matrix(Eigen::Vector3d axis, float theta) {
+Eigen::Matrix3f rotation_matrix(Eigen::Vector3f axis, float theta) {
     axis = axis / sqrt(axis.transpose() * axis);
     float a = cos(theta / 2);
-    Eigen::Vector3d temp = -axis * sin(theta / 2);
+    Eigen::Vector3f temp = -axis * sin(theta / 2);
     float b, c, d;
     b = temp(0);
     c = temp(1);
     d = temp(2);
-    Eigen::Matrix3d R;
+    Eigen::Matrix3f R;
     R << a * a + b * b - c * c - d * d, 2 * (b * c - a * d), 2 * (b * d + a * c),
         2 * (b * c + a * d), a* a + c * c - b * b - d * d, 2 * (c * d - a * b),
         2 * (b * d - a * c), 2 * (c * d + a * b), a* a + d * d - b * b - c * c;
@@ -85,14 +85,14 @@ Eigen::Matrix3d rotation_matrix(Eigen::Vector3d axis, float theta) {
 
 void test_best_fit(void) {
 
-    Eigen::MatrixXd A = Eigen::MatrixXd::Random(N_pt, 3);
-    Eigen::MatrixXd B;
-    Eigen::MatrixXd C;
-    Eigen::Vector3d t;
-    Eigen::Matrix3d R;
-    Eigen::Matrix4d T;
-    Eigen::Vector3d t1;
-    Eigen::Matrix3d R1;
+    Eigen::MatrixXf A = Eigen::MatrixXf::Random(N_pt, 3);
+    Eigen::MatrixXf B;
+    Eigen::MatrixXf C;
+    Eigen::Vector3f t;
+    Eigen::Matrix3f R;
+    Eigen::Matrix4f T;
+    Eigen::Vector3f t1;
+    Eigen::Matrix3f R1;
 
     float total_time = 0;
     unsigned start, end;
@@ -100,16 +100,16 @@ void test_best_fit(void) {
 
     for (int i = 0; i < N_tests; i++) {
         B = A;
-        t = Eigen::Vector3d::Random() * translation;
+        t = Eigen::Vector3f::Random() * translation;
 
         for (int jj = 0; jj < N_pt; jj++) {
             B.block<1, 3>(jj, 0) = B.block<1, 3>(jj, 0) + t.transpose();
         }
 
-        R = rotation_matrix(Eigen::Vector3d::Random(), my_random() * rotation);
+        R = rotation_matrix(Eigen::Vector3f::Random(), my_random() * rotation);
         B = (R * B.transpose()).transpose();
 
-        B += Eigen::MatrixXd::Random(N_pt, 3) * noise_sigma;
+        B += Eigen::MatrixXf::Random(N_pt, 3) * noise_sigma;
 
         start = GetTickCount();
         T = best_fit_transform(B, A);
@@ -117,7 +117,7 @@ void test_best_fit(void) {
         interval = float((end - start)) / 1000;
         total_time += interval;
 
-        C = Eigen::MatrixXd::Ones(N_pt, 4);
+        C = Eigen::MatrixXf::Ones(N_pt, 4);
         C.block<N_pt, 3>(0, 0) = B;
 
         C = (T * C.transpose()).transpose();
@@ -135,14 +135,14 @@ void test_best_fit(void) {
 
 void test_icp(void) {
 	//יצירת קבוצת נקודות ראשונית רנדומלית והפיכתה למטריצה בגודל 30 כפול 3
-    Eigen::MatrixXd A = Eigen::MatrixXd::Random(N_pt, 3);
-    Eigen::MatrixXd B;
-    Eigen::MatrixXd C;
-    Eigen::Vector3d t;
-    Eigen::Matrix3d R;
-    Eigen::Matrix4d T;
-    Eigen::Vector3d t1;
-    Eigen::Matrix3d R1;
+    Eigen::MatrixXf A = Eigen::MatrixXf::Random(N_pt, 3);
+    Eigen::MatrixXf B;
+    Eigen::MatrixXf C;
+    Eigen::Vector3f t;
+    Eigen::Matrix3f R;
+    Eigen::Matrix4f T;
+    Eigen::Vector3f t1;
+    Eigen::Matrix3f R1;
     ICP_OUT icp_result;
     std::vector<float> dist;
     int iter;
@@ -155,16 +155,16 @@ void test_icp(void) {
 
     for (int i = 0; i < N_tests; i++) {
         B = A;
-        t = Eigen::Vector3d::Random() * translation;
+        t = Eigen::Vector3f::Random() * translation;
 
         for (int jj = 0; jj < N_pt; jj++) {
             B.block<1, 3>(jj, 0) = B.block<1, 3>(jj, 0) + t.transpose();
         }
 
-        R = rotation_matrix(Eigen::Vector3d::Random(), my_random() * rotation);
+        R = rotation_matrix(Eigen::Vector3f::Random(), my_random() * rotation);
         B = (R * B.transpose()).transpose();
 
-        B += Eigen::MatrixXd::Random(N_pt, 3) * noise_sigma;
+        B += Eigen::MatrixXf::Random(N_pt, 3) * noise_sigma;
 
         // shuffle
         my_random_shuffle(B);
@@ -180,7 +180,7 @@ void test_icp(void) {
         iter = icp_result.iter;
         mean = std::accumulate(dist.begin(), dist.end(), 0.0) / dist.size();
 
-        C = Eigen::MatrixXd::Ones(N_pt, 4);
+        C = Eigen::MatrixXf::Ones(N_pt, 4);
         C.block<N_pt, 3>(0, 0) = B;
 
         C = (T * C.transpose()).transpose();
@@ -194,10 +194,10 @@ void test_icp(void) {
         //}
     }
     total_distance = t1.norm();
-    Eigen::AngleAxisd aa(R1);
+    Eigen::AngleAxisf aa(R1);
     
-    double angle = aa.angle() * 180.0 / M_PI;
-    Eigen::Vector3d axis = aa.axis();
+    float angle = aa.angle() * 180.0 / M_PI;
+    Eigen::Vector3f axis = aa.axis();
 
     cout << "Total distance traveled by the object: " << total_distance << " units" << endl;
 	cout << "Angle of rotation: " << angle << " degrees" << endl;
