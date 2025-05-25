@@ -2,6 +2,7 @@
 #include <iostream>
 #include <numeric>
 #include "Eigen/Eigen"
+#include "KDTree.h"
 
 using namespace std;
 using namespace Eigen;
@@ -113,39 +114,21 @@ ICP_OUT icp(const MatrixXd& A, const MatrixXd& B, int max_iterations, int tolera
 
 
 
-NEIGHBOR nearest_neighbot(const MatrixXd& src, const MatrixXd& dst) {
-    int row_src = src.rows();
-    int row_dst = dst.rows();
-    Eigen::Vector3d vec_src;
-    Eigen::Vector3d vec_dst;
+NEIGHBOR nearest_neighbot(const Eigen::MatrixXd& src, const Eigen::MatrixXd& dst) {
+    KDTree tree(dst);
     NEIGHBOR neigh;
-    float min = 100;
-    int index = 0;
-    float dist_temp = 0;
 
-    for (int ii = 0; ii < row_src; ii++) {
-        vec_src = src.block<1, 3>(ii, 0).transpose();
-        min = 100;
-        index = 0;
-        dist_temp = 0;
-        for (int jj = 0; jj < row_dst; jj++) {
-            vec_dst = dst.block<1, 3>(jj, 0).transpose();
-            dist_temp = dist(vec_src, vec_dst);
-            if (dist_temp < min) {
-                min = dist_temp;
-                index = jj;
-            }
-        }
-        // cout << min << " " << index << endl;
-        // neigh.distances[ii] = min;
-        // neigh.indices[ii] = index;
-        neigh.distances.push_back(min);
-        neigh.indices.push_back(index);
+    for (int i = 0; i < src.rows(); ++i) {
+        Eigen::Vector3d query = src.row(i).transpose();
+        int nearest_idx = -1;
+        double best_dist_sq = std::numeric_limits<double>::max();
+        tree.nearest(query, nearest_idx, best_dist_sq);
+        neigh.indices.push_back(nearest_idx);
+        neigh.distances.push_back(std::sqrt(best_dist_sq));
     }
 
     return neigh;
 }
-
 
 float dist(const Eigen::Vector3d& pta, const Eigen::Vector3d& ptb) {
     return sqrt((pta[0] - ptb[0]) * (pta[0] - ptb[0]) + (pta[1] - ptb[1]) * (pta[1] - ptb[1]) + (pta[2] - ptb[2]) * (pta[2] - ptb[2]));

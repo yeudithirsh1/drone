@@ -1,18 +1,18 @@
 #pragma once  
 #include <chrono>  
 
-using time = std::chrono::time_point<std::chrono::high_resolution_clock>;  
+using namespace std;
+using time_point = chrono::time_point<chrono::high_resolution_clock>;  
 
 class Sensors  
 {  
 private:  
   float distanceBetweenMeasurements;  
-  time timeMeasurements;  
+  time_point timeMeasurements;  
 public:  
-  Sensors();  
-  Sensors(float distanceBetweenMeasurements, time timeMeasurements);  
+  Sensors(float distanceBetweenMeasurements, time_point timeMeasurements);  
   void setDistanceBetweenMeasurements(float distanceBetweenMeasurements);  
   float getDistanceBetweenMeasurements();  
-  void setTimeMeasurements(time timeMeasurements); 
-  time getTimeMeasurements();
+  void setTimeMeasurements(time_point timeMeasurements); 
+  time_point getTimeMeasurements();
 };

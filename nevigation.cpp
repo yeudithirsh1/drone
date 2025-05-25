@@ -18,7 +18,6 @@ void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
     {
        return a.x < b.x || (a.x == b.x && a.y < b.y);
     });
-    vector<Vertex> hull;
     for (const auto &p : Vertexs) 
     {
         while (hull.size() >= 2 && crossProduct(hull[hull.size() - 2], hull.back(), p) <= 0) 
@@ -179,7 +178,7 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 }
 
 // פונקציה ראשית
-vector<vector<Vertex>> processVertexs(vector<Vertex> &Vertexs, double r)
+vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, double fieldView)
 {
     vector<Vertex> hull;
 	convexHull(Vertexs, hull);
@@ -192,7 +191,7 @@ vector<vector<Vertex>> processVertexs(vector<Vertex> &Vertexs, double r)
 		{
 			flag = false;
 		}
-        vector<Vertex> lineVertexs = generateVertexsOnLine(edges[i].first, edges[i].second, r, flag);
+        vector<Vertex> lineVertexs = generateVertexsOnLine(edges[i].first, edges[i].second, fieldView, flag);
         VertexsOnLines.push_back(lineVertexs);
     }
     if (!VertexsOnLines.empty() && !VertexsOnLines.back().empty()) 

@@ -1,99 +1,3 @@
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
-#include <pcl/kdtree/kdtree_flann.h>
-#include <Eigen/Dense>
-#include <iostream>
-#include <cmath>
-#include "Reading_sensors.h"
-
-
-using namespace Eigen;
-using namespace std;
-using namespace pcl;
-
-// === קבועים ===
-const float SAFE_DISTANCE = 2.0f;
-const float SCAN_ANGLE_RESOLUTION = 10.0f;
-const float AVOIDANCE_ANGLE_RANGE = 90.0f;
-const float STEP_DISTANCE = 0.5f;
-const float GOAL_THRESHOLD = 1.0f; // מטר
-const float ANGLE_THRESHOLD = 15.0f; // סף זווית לבדיקה
-
-// === פונקציות ===
-bool isDirectionFree(const PointCloud<PointXYZ>::Ptr& cloud,
-    const KdTreeFLANN<PointXYZ>& kdtree,
-    const Vector3f& pos,
-    const Vector3f& dir)
-{
-    PointXYZ searchPoint(pos.x(), pos.y(), pos.z());
-    vector<int> pointIdxRadiusSearch;
-    vector<float> pointRadiusSquaredDistance;
-
-    // חיפוש נקודות ברדיוס SAFE_DISTANCE
-    if (kdtree.radiusSearch(searchPoint, SAFE_DISTANCE, pointIdxRadiusSearch, pointRadiusSquaredDistance) > 0) {
-        // עוברים על כל הנקודות שמצאנו
-        for (int idx : pointIdxRadiusSearch) {
-            const auto& pt = cloud->points[idx];
-            Vector3f obstacle(pt.x, pt.y, pt.z);
-            Vector3f rel = obstacle - pos;
-
-            // מחשבים את הזווית בין הכיוון שלנו לנקודת המכשול
-            float angle = acos(rel.normalized().dot(dir.normalized())) * 180.0f / M_PI;
-            if (angle < ANGLE_THRESHOLD) {
-                return false; // יש מכשול שמפריע במסלול
-            }
-        }
-    }
-    return true; // אין מכשול קרוב שמפריע
-}
-
-Vector3f findBestDirection(const PointCloud<PointXYZ>::Ptr& cloud,
-    const KdTreeFLANN<PointXYZ>& kdtree,
-    const Vector3f& pos,
-    const Vector3f& originalDir)
-{
-    Vector3f bestDir = originalDir;
-    float minAngle = 180.0f;
-
-    for (float angle = -AVOIDANCE_ANGLE_RANGE; angle <= AVOIDANCE_ANGLE_RANGE; angle += SCAN_ANGLE_RESOLUTION) {
-        float radians = angle * M_PI / 180.0f;
-        Matrix3f rot = AngleAxisf(radians, Vector3f::UnitZ()).toRotationMatrix();
-        Vector3f newDir = rot * originalDir;
-
-        if (isDirectionFree(cloud, kdtree, pos, newDir)) {
-            float deviation = acos(newDir.normalized().dot(originalDir.normalized())) * 180.0f / M_PI;
-            if (deviation < minAngle) {
-                minAngle = deviation;
-                bestDir = newDir;
-            }
-        }
-    }
-    return bestDir;
-}
-
-Vector3f navigateToGoal(const PointCloud<PointXYZ>::Ptr& cloud,
-    const KdTreeFLANN<PointXYZ>& kdtree,
-    const Vector3f& currentPos,
-    const Vector3f& goal)
-{
-    Vector3f desiredDir = goal - currentPos;
-    if (desiredDir.norm() < GOAL_THRESHOLD) {
-        return currentPos; // כבר קרובים מאוד ליעד
-    }
-
-    if (isDirectionFree(cloud, kdtree, currentPos, desiredDir)) {
-        return currentPos + desiredDir.normalized() * STEP_DISTANCE;
-    }
-    else {
-        Vector3f avoidanceDir = findBestDirection(cloud, kdtree, currentPos, desiredDir);
-        return currentPos + avoidanceDir.normalized() * STEP_DISTANCE;
-    }
-}
-
-
-
-
-
 #include "nevigation.h"
 #include <vector>
 #include <cmath>
@@ -101,27 +5,49 @@ Vector3f navigateToGoal(const PointCloud<PointXYZ>::Ptr& cloud,
 #include <limits>
 #include "ICP.h"
 #include "Eigen/Eigen"
+#include "Object.h"
+#include <Eigen/Dense>
+#include <pcl/point_types.h>
 #include <iostream>
+#include "PointInSpace.h"
+#include "KDTree.h"
 
+
+using namespace Eigen;
 using namespace std;
-
-struct Point3D {
-    float x, y, z;
-};
-
-struct Point2D {
-    float x, y;
-};
-
 const float Physical_height = 2.0f;
 const float Physical_width = 4.5f;
+const float Physical_depth = 3.2f;
 const float angleResDeg = 5.3f;
 
 vector<Point> listPoint = {};
 
+//בדיקה האם נקודה נמצאת בימין המכשול או בשמאל
+int point_side_of_line(Point A, Point B, Point P)
+{
+    int cross = (B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x);
+    return cross;
+}
+
+//פונקציה לחישוב שיפוע בין 2 נקודות, משוואת ישר, ונקודת חיתוך בין 2 ישרים
+Point Intersection_points(Point startPos, Point goalPos, Point dronePos)
+{
+    Point currentPoint1 = dronePos;
+    Point currentPoint2 = listPoint[listPoint.size() - 1];
+	float m1 = (goalPos.y - startPos.y) / (goalPos.x - startPos.x);
+    float b1 = startPos.y - m1 * startPos.x;
+	float x1 = (startPos.y - b1) / m1;
+	float m2 = (currentPoint2.y - currentPoint1.y) / (currentPoint2.x - currentPoint1.x);
+	float b2 = currentPoint1.y - m2 * currentPoint1.x;
+	float x2 = (currentPoint1.y - b2) / m2;
+	float intersectionPointx = (b2 - b1) / (m1 - m2);
+    float intersectionPointy = m1 * intersectionPointx + b1;
+    Point intersectionPoint = { intersectionPointx, intersectionPointy, startPos.z };
+    return intersectionPoint;
+}
 
 //מסננת ענן נקודות ומוצאת זווית פנויה לטיסה
-float findMostRightFreeGap(const vector<Point3D>& cloud,
+float findMostRightFreeGap(const vector<Point>& cloud,
     Point droneStart,
     Point droneTarget,
     Point dronePos,
@@ -164,10 +90,11 @@ float findMostRightFreeGap(const vector<Point3D>& cloud,
             Vector3f center = dronPoseVector;
             Vector3f delta = pVector - center;
 
+            float x = delta.dot(forward);
             float y = delta.dot(right);
-            float z = delta.dot(up);
+            float z = delta.dot(up);     
 
-            bool inside = fabs(y) <= Physical_width && fabs(z) <= Physical_height;
+            bool inside = fabs(x) <= Physical_depth && fabs(y) <= Physical_width && fabs(z) <= Physical_height;
 
             if (inside) {
                 foundInside = true; 
@@ -183,49 +110,24 @@ float findMostRightFreeGap(const vector<Point3D>& cloud,
     return angle;
 }
 
-
-//בדיקה האם נקודה נמצאת בימין המכשול או בשמאל
-int point_side_of_line(Point A, Point B, Point P)
-{
-    int cross = (B.x - A.x) * (P.y - A.y) - (B.y - A.y) * (P.x - A.x);
-    return cross;
-}
-
-//פונקציה לחישוב שיפוע בין 2 נקודות, משוואת ישר, ונקודת חיתוך בין 2 ישרים
-Point Intersection_points(Point startPos, Point goalPos, Point dronePos)
-{
-    Point currentPoint1 = dronePos;
-    Point currentPoint2 = listPoint[listPoint.size() - 1];
-	float m1 = (goalPos.y - startPos.y) / (goalPos.x - startPos.x);
-    float b1 = startPos.y - m1 * startPos.x;
-	float x1 = (startPos.y - b1) / m1;
-	float m2 = (currentPoint2.y - currentPoint1.y) / (currentPoint2.x - currentPoint1.x);
-	float b2 = currentPoint1.y - m2 * currentPoint1.x;
-	float x2 = (currentPoint1.y - b2) / m2;
-	float intersectionPointx = (b2 - b1) / (m1 - m2);
-    float intersectionPointy = m1 * intersectionPointx + b1;
-    Point intersectionPoint = { intersectionPointx, intersectionPointy };
-    return intersectionPoint;
-}
-
 //פונקציה לחיבור ענני נקודות
-vector<Point> mergePointClouds(const vector<vector<Point>>& clouds) {
-    vector<Point> merged;
-
-    // מחשבים כמה נקודות בסך הכל כדי להזמין מקום מראש
-    size_t totalSize = 0;
-    for (const auto& cloud : clouds) {
-        totalSize += cloud.size();
-    }
-    merged.reserve(totalSize);
-
-    // מוסיפים כל ענן בנפרד
-    for (const auto& cloud : clouds) {
-        merged.insert(merged.end(), cloud.begin(), cloud.end());
-    }
-
-    return merged;
-}
+//vector<Point> mergePointClouds(const vector<vector<Point>>& clouds) {
+//    vector<Point> merged;
+//
+//    // מחשבים כמה נקודות בסך הכל כדי להזמין מקום מראש
+//    size_t totalSize = 0;
+//    for (const auto& cloud : clouds) {
+//        totalSize += cloud.size();
+//    }
+//    merged.reserve(totalSize);
+//
+//    // מוסיפים כל ענן בנפרד
+//    for (const auto& cloud : clouds) {
+//        merged.insert(merged.end(), cloud.begin(), cloud.end());
+//    }
+//
+//    return merged;
+//}
 
 
 //פונקציה לסכימת אורך המסלול מימין ומשמאל
@@ -285,8 +187,8 @@ void convexHullClockwise(vector<Point2D> turnPoints,vector<Point2D>& hull)
 }
 
 //פונקציה שבודקת איזה צד ארוך יותר ימין או שמאל
-void analyzeDroneTurnsAndHull(const Point3D& startPos,
-    const Point3D& goalPos,
+void analyzeDroneTurnsAndHull(const Point& startPos,
+    const Point& goalPos,
     float deltaZ,
     float radius,
     float minGapWidth,
@@ -334,88 +236,135 @@ void analyzeDroneTurnsAndHull(const Point3D& startPos,
     }
 }
 
+// Normalize a vector
+Point2D normalize(const Point2D& v) {
+    double len = std::sqrt(v.x * v.x + v.y * v.y);
+    if (len == 0) return { 0, 0 };
+    return { static_cast<float> (v.x / len),static_cast<float> (v.y / len) };
+}
 
-//float pointToLineDistance(const Point2D& p, const Point2D& lineStart, const Point2D& lineEnd) {
-//    float A = p.x - lineStart.x;
-//    float B = p.y - lineStart.y;
-//    float C = lineEnd.x - lineStart.x;
-//    float D = lineEnd.y - lineStart.y;
-//
-//    float dot = A * C + B * D;
-//    float len_sq = C * C + D * D;
-//    float param = dot / len_sq;
-//
-//    float xx, yy;
-//
-//    if (param < 0 || len_sq == 0) {
-//        xx = lineStart.x;
-//        yy = lineStart.y;
-//    }
-//    else if (param > 1) {
-//        xx = lineEnd.x;
-//        yy = lineEnd.y;
-//    }
-//    else {
-//        xx = lineStart.x + param * C;
-//        yy = lineStart.y + param * D;
-//    }
-//
-//    float dx = p.x - xx;
-//    float dy = p.y - yy;
-//    return sqrt(dx * dx + dy * dy);
-//}
+// Rotate 90 degrees counter-clockwise to get normal vector
+Point2D getNormal(const Point2D& v) {
+    return { -v.y, v.x };
+}
+
+// Inflate or deflate polygon
+std::vector<Point2D> inflatePolygon(const std::vector<Point2D>& polygon, double distance) {
+    int n = polygon.size();
+    std::vector<Point2D> inflated;
+
+    for (int i = 0; i < n; ++i) {
+        Point2D prev = polygon[(i - 1 + n) % n];
+        Point2D curr = polygon[i];
+        Point2D next = polygon[(i + 1) % n];
+
+        Point2D edge1 = normalize(curr - prev);
+        Point2D edge2 = normalize(next - curr);
+
+        Point2D normal1 = getNormal(edge1);
+        Point2D normal2 = getNormal(edge2);
+
+        Point2D avgNormal = normalize(normal1 + normal2);
+        Point2D inflatedPoint = curr + avgNormal * distance;
+
+        inflated.push_back(inflatedPoint);
+    }
+
+    return inflated;
+}
 
 
-//vector<Point2D> performBypass(const Point3D& startPos,
-//    const Point3D& goalPos,
-//    float distance,
-//    Point2D crossingPoint,
-//    vector<vector<Point>> all_lidar_data) {
-//
-//    Point3D currentPos = startPos;
-//    vector<Point2D> turnPoints;
-//    Eigen::Vector2d rejoinPoint;
-//    bool hasRejoinedLine = false;
-//    bool crossedLine = false;
-//
-//    while (true) {
-//
-//        float distFromLine = pointToLineDistance({ currentPos.x, currentPos.y },
-//            { startPos.x, startPos.y },
-//            { goalPos.x, goalPos.y });
-//
-//        if (!crossedLine && distFromLine < 0.2) {
-//            crossingPoint = { currentPos.x, currentPos.y };
-//            crossedLine = true;
-//            cout << "Drone crossed the line at point: (" << crossingPoint.x << ", " << crossingPoint.y << ")" << endl;
-//        }
-//
-//        if (crossedLine && !hasRejoinedLine && distFromLine < 0.2) {
-//            hasRejoinedLine = true;
-//            cout << "Drone rejoined the original path." << endl;
-//        }
-//
-//        if (hasRejoinedLine) {
-//            float distToStart = hypot(currentPos.x - startPos.x, currentPos.y - startPos.y);
-//            if (distToStart < 0.1) {
-//                cout << "Drone has returned to the starting point!" << endl;
-//                break;
-//            }
-//        }
-//
-//        float angle = findMostRightFreeGap(currentPointCloud, currentPos,
-//            distance);
-//
-//        if (isnan(angle)) {
-//            cout << "No free path found, hovering..." << endl;
-//            continue;
-//        }
-//
-//        turnPoints.push_back({ currentPos.x, currentPos.y });
-//
-//        cout << "Moving drone in direction: " << angle << " degrees" << endl;
-//        currentPos = simulateDroneStep(currentPos, angle);
-//    }
-//
-//    return turnPoints;
-//}
+
+
+
+
+
+void proximity(const vector<Eigen::Vector3d>& points, int idx,
+    vector<float>& cluster, std::vector<bool>& processed, KDTree* tree, float distanceTol)
+{
+    processed[idx] = true;
+    cluster.push_back(idx);
+    vector<float> neighbors = tree->radiusSearch(points[idx], distanceTol);
+    for (int i : neighbors)
+    {
+        if (!processed[i])
+            proximity(points, i, cluster, processed, tree, distanceTol);
+    }
+}
+
+
+vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3d>& points,
+    KDTree* tree, float distanceTol)
+{
+    vector<vector<float>> clusters;
+    vector<bool> processed(points.size(), false);
+
+    for (int i = 0; i < points.size(); ++i)
+    {
+        if (!processed[i])
+        {
+            vector<float> cluster;
+            proximity(points, i, cluster, processed, tree, distanceTol);
+            clusters.push_back(cluster);
+        }
+    }
+
+    return clusters;
+}
+
+
+
+float computeClusterSize(const vector<Eigen::Vector3d>& points, const vector<float>& cluster)
+{
+    float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
+    float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
+
+    for (int idx : cluster)
+    {
+        const auto& point = points[idx];
+        minX = std::min(minX, static_cast<float>(point[0]));
+        minY = std::min(minY, static_cast<float>(point[1]));
+        minZ = std::min(minZ, static_cast<float>(point[2]));
+        maxX = std::max(maxX, static_cast<float>(point[0]));
+        maxY = std::max(maxY, static_cast<float>(point[1]));
+        maxZ = std::max(maxZ, static_cast<float>(point[2]));
+    }
+
+    float dx = maxX - minX;
+    float dy = maxY - minY;
+    float dz = maxZ - minZ;
+
+    return sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+
+int main()
+{
+    // יצירת נקודות לדוגמה
+    vector<Eigen::Vector3d> points = {
+        {1.0, 2.0, 0.0},
+        {1.2, 2.1, 0.1},
+        {8.0, 9.0, 0.0},
+        {8.1, 9.1, 0.1},
+        {50.0, 50.0, 0.0}
+    };
+
+    // בניית KDTree
+    KDTree tree;
+    for (int i = 0; i < points.size(); ++i)
+        tree.insert(points[i], i); // נניח שהעץ שלך תומך בזה
+
+    //  אשכול לפי מרחק
+    float distanceTol = 1.5;
+    vector<vector<float>> clusters = euclideanCluster(points, &tree, distanceTol);
+
+    // 4 הדפסת תוצאות
+    cout << "Number of clusters: " << clusters.size() << endl;
+    for (int i = 0; i < clusters.size(); ++i)
+    {
+        float size = computeClusterSize(points, clusters[i]);
+        cout << " -> Cluster size (bounding box diagonal): " << size << endl;
+    }
+
+    return 0;
+}

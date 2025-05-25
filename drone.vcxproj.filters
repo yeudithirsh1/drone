@@ -18,28 +18,16 @@
     <ClCompile Include="nevigation.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PointsOnTheLines.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="kalman_filter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="FusionEKF.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="tools.cpp">
+    <ClCompile Include="KalmanFilter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ICP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="drone_commands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Synchronization.cpp">
@@ -57,10 +45,28 @@
     <ClCompile Include="Reading_sensors.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Reading_sensors.h">
+    <ClCompile Include="Sensors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GPS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="KDTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DroneFeatures.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PointInSpace.h">
       <Filter>Header Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sensors.cpp">
+    <ClCompile Include="IMU.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DroneCommands.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LIDAR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,16 +74,7 @@
     <ClInclude Include="nevigation.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="PointsOnTheLines.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="kalman_filter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="FusionEKF.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="tools.h">
+    <ClInclude Include="KalmanFilter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="resource.h">
@@ -87,9 +84,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ICP.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="drone_commands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Synchronization.h">
@@ -102,6 +96,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sensors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GPS.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="KDTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DroneFeatures.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IMU.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LIDAR.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,4 +1,6 @@
 #pragma once  
+#include <vector>
+
 using namespace std;  
 
 struct Vertex  
@@ -31,7 +33,7 @@ vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, double step, bool flag)
 
 vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph);
 
-vector<vector<Vertex>> processVertexs(vector<Vertex> &Vertexs, double r);
+vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, double fieldView);
 
 bool isOnLine(Vertex A, Vertex B, Vertex P);
 

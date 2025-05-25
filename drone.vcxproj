@@ -134,39 +134,40 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="drone_commands.h" />
-    <ClInclude Include="FusionEKF.h" />
+    <ClInclude Include="DroneFeatures.h" />
+    <ClInclude Include="IMU.h" />
+    <ClInclude Include="KalmanFilter.h" />
+    <ClInclude Include="GPS.h" />
     <ClInclude Include="ICP.h" />
-    <ClInclude Include="kalman_filter.h" />
+    <ClInclude Include="KDTree.h" />
+    <ClInclude Include="LIDAR.h" />
     <ClInclude Include="measurement_package.h" />
     <ClInclude Include="nevigation.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Sensors.h" />
     <ClInclude Include="Soldiers.h" />
     <ClInclude Include="Synchronization.h" />
-    <ClInclude Include="PointsOnTheLines.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="tools.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="drone_commands.cpp" />
-    <ClCompile Include="FusionEKF.cpp" />
+    <ClCompile Include="DroneCommands.cpp" />
+    <ClCompile Include="DroneFeatures.cpp" />
+    <ClCompile Include="IMU.cpp" />
+    <ClCompile Include="KalmanFilter.cpp" />
+    <ClCompile Include="GPS.cpp" />
     <ClCompile Include="ICP.cpp" />
-    <ClCompile Include="kalman_filter.cpp" />
+    <ClCompile Include="KDTree.cpp" />
+    <ClCompile Include="LIDAR.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainKalman.cpp" />
     <ClCompile Include="nevigation.cpp" />
     <ClCompile Include="Object.cpp" />
-    <ClCompile Include="Reading_sensors.h" />
+    <ClCompile Include="PointInSpace.h" />
     <ClCompile Include="Reading_sensors.cpp" />
     <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="Synchronization.cpp" />
-    <ClCompile Include="PointsOnTheLines.cpp">
-      <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">C:\openCV\opencv\build\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-    </ClCompile>
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="tools.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="drone.rc" />

@@ -17,7 +17,7 @@ struct BoundingBox {
 struct CameraIntrinsics {  
   float fx, fy, cx, cy;  
 };  
-
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        
 class Synchronization
 {  
 private:  

@@ -8,7 +8,6 @@ public:
     long long timestamp_;
 
     enum SensorType {
-        RADAR,
         GPS,
         LIDAR,
         IMU
