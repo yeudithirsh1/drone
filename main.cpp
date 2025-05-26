@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include "nevigation.h"
 #include "PointInSpace.h"
 using namespace std;
 

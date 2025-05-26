@@ -1,4 +1,3 @@
-#include "nevigation.h"
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -256,9 +255,9 @@ std::vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float d
 
 
 
-
+// מוצא את כל השכנים של נקודה אחת ומכניס אותם לאשכול
 void proximity(const vector<Eigen::Vector3f>& points, int idx,
-    vector<float>& cluster, std::vector<bool>& processed, KDTree* tree, float distanceTol)
+    vector<int>& cluster, vector<bool>& processed, KDTree* tree, float distanceTol)
 {
     processed[idx] = true;
     cluster.push_back(idx);
@@ -270,18 +269,18 @@ void proximity(const vector<Eigen::Vector3f>& points, int idx,
     }
 }
 
-
-vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3f>& points,
+// בונה את רשימת האשכולות
+vector<vector<int>> euclideanCluster(const vector<Eigen::Vector3f>& points,
     KDTree* tree, float distanceTol)
 {
-    vector<vector<float>> clusters;
+    vector<vector<int>> clusters;
     vector<bool> processed(points.size(), false);
 
     for (int i = 0; i < points.size(); ++i)
     {
         if (!processed[i])
         {
-            vector<float> cluster;
+            vector<int> cluster;
             proximity(points, i, cluster, processed, tree, distanceTol);
             clusters.push_back(cluster);
         }
@@ -290,9 +289,8 @@ vector<vector<float>> euclideanCluster(const vector<Eigen::Vector3f>& points,
     return clusters;
 }
 
-
-
-float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<float>& cluster)
+// מחשב את אורך האלכסון של קופסה תוחמת של אשכול
+float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<int>& cluster)
 {
     float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
     float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
@@ -300,49 +298,93 @@ float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<flo
     for (int idx : cluster)
     {
         const auto& point = points[idx];
-        minX = std::min(minX, static_cast<float>(point[0]));
-        minY = std::min(minY, static_cast<float>(point[1]));
-        minZ = std::min(minZ, static_cast<float>(point[2]));
-        maxX = std::max(maxX, static_cast<float>(point[0]));
-        maxY = std::max(maxY, static_cast<float>(point[1]));
-        maxZ = std::max(maxZ, static_cast<float>(point[2]));
+        minX = std::min(minX, point[0]);
+        minY = std::min(minY, point[1]);
+        minZ = std::min(minZ, point[2]);
+        maxX = std::max(maxX, point[0]);
+        maxY = std::max(maxY, point[1]);
+        maxZ = std::max(maxZ, point[2]);
     }
 
     float dx = maxX - minX;
     float dy = maxY - minY;
     float dz = maxZ - minZ;
 
-    return sqrt(dx * dx + dy * dy + dz * dz);
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+void DivisionIntoClusters(vector<Eigen::Vector3f> points)
+{
+    // שלב 1: בניית KDTree
+    KDTree tree;
+    for (int i = 0; i < points.size(); ++i)
+        tree.insert(points[i], i);
+
+    // שלב 2: אשכול לפי מרחק
+    float distanceTol = 1.5;
+    vector<vector<int>> clusters = euclideanCluster(points, &tree, distanceTol);
+
+    // שלב 3: הפרדת אשכולות קטנים מגדולים
+    float minPhysicalSize = 1.0f;
+
+    vector<vector<int>> largeClusters;
+    vector<vector<int>> smallClusters;
+
+    for (const auto& cluster : clusters)
+    {
+        float size = computeClusterSize(points, cluster);
+
+        if (size <= minPhysicalSize)
+            smallClusters.push_back(cluster);
+    }
 }
 
 
-int main()
-{
-    // יצירת נקודות לדוגמה
-    vector<Eigen::Vector3f> points = {
-        {1.0, 2.0, 0.0},
-        {1.2, 2.1, 0.1},
-        {8.0, 9.0, 0.0},
-        {8.1, 9.1, 0.1},
-        {50.0, 50.0, 0.0}
-    };
 
-    // בניית KDTree
-    KDTree tree;
-    for (int i = 0; i < points.size(); ++i)
-        tree.insert(points[i], i); // נניח שהעץ שלך תומך בזה
+struct Node {
+    int value;
+    Node* left;
+    Node* right;
+    Node* parent;
+};
 
-    //  אשכול לפי מרחק
-    float distanceTol = 1.5;
-    vector<vector<float>> clusters = euclideanCluster(points, &tree, distanceTol);
+// מציאת הצומת השמאלי ביותר בתת עץ
+Node* LeftMost(Node* node) {
+    while (node->left != nullptr) {
+        node = node->left;
+    }
+    return node;
+}
 
-    // 4 הדפסת תוצאות
-    cout << "Number of clusters: " << clusters.size() << endl;
-    for (int i = 0; i < clusters.size(); ++i)
-    {
-        float size = computeClusterSize(points, clusters[i]);
-        cout << " -> Cluster size (bounding box diagonal): " << size << endl;
+// מציאת האיבר העוקב
+Node* successor(Node* node) {
+    if (node->right != nullptr) {
+        return LeftMost(node->right);
     }
 
-    return 0;
+    while (node->parent != nullptr && node == node->parent->right) {
+        node = node->parent;
+    }
+
+    return node->parent;
+}
+
+bool checkTreeContainsAnotherTree1(Node* rootA, Node* rootB) {
+    Node* a = LeftMost(rootA);
+    Node* b = LeftMost(rootB);
+
+    while (a != nullptr && b != nullptr) {
+        while (b != nullptr && a->value > b->value) {
+            b = successor(b);
+        }
+
+        if (b == nullptr || b->value > a->value) {
+            return false;
+        }
+
+        a = successor(a);
+        b = successor(b);
+    }
+
+    return true;
 }

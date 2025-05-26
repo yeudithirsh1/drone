@@ -1,5 +1,7 @@
 #include "Sensors.h"
 
+Sensors::Sensors() {};
+
 Sensors::Sensors(float distanceBetweenMeasurements, time_point timeMeasurements)
     : distanceBetweenMeasurements(distanceBetweenMeasurements), timeMeasurements(timeMeasurements){}
 

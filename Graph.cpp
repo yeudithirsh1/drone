@@ -2,8 +2,14 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include "nevigation.h"
 using namespace std;
+
+struct Vertex
+{
+    float x, y, z;
+    Vertex* next;
+
+};
 
 // חישוב מכפלה וקטורית
 float crossProduct(const Vertex &a, const Vertex &b, const Vertex &c)
@@ -95,14 +101,10 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 		{
             if (flag)
             {
-                if (j + 1 < graph[i].size())
-                {
-                    graph[i][j].next = &graph[i][j + 1];
-                }
-                else
-                {
-                    graph[i][j].next = &graph[i + 1][0];
-                }
+                if (j + 1 < graph[i].size()){
+                    graph[i][j].next = &graph[i][j + 1];}
+                else{
+                    graph[i][j].next = &graph[i + 1][0];}
                 flag = false;
             }
             else
@@ -114,16 +116,12 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 						n -= 2;
 					else
 					{
-                        if (n == 0)
-                        {
+                        if (n == 0){
                             n = graph[k - 1].size() - 2;
-                            k--;
-                        }
-                        else
-                        {
+                            k--;}
+                        else{
                             n = graph[k - 1].size() - 1;
-							k--;
-                        }
+                            k--;}
 					}
 				}
                 flag = true;
@@ -138,14 +136,10 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 		{
             if (flag)
             {
-				if (j - 1 >= 0)
-				{
-					graph[i][j].next = &graph[i][j - 1];
-				}
-				else
-				{
-					graph[i][j].next = &graph[i - 1][graph[i - 1].size() - 1];
-				}
+				if (j - 1 >= 0){
+					graph[i][j].next = &graph[i][j - 1];}
+				else{
+					graph[i][j].next = &graph[i - 1][graph[i - 1].size() - 1];}
 				flag = false;
 			}
 			else
@@ -157,16 +151,12 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 						n += 2;
 					else
 					{
-						if (n == graph[k].size() - 1)
-						{
+						if (n == graph[k].size() - 1){
 							n = 1;
-                            k++;
-						}
-						else
-						{
+                            k++;}
+						else{
 							n = 0;
-                            k++ ;
-						}
+                            k++ ;}
 					}
 				}
 				flag = true;
@@ -201,5 +191,6 @@ vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, float fieldV
     VertexsOnLines = zigzag(VertexsOnLines);
     return VertexsOnLines;
 }
+
 
 

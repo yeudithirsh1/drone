@@ -1,0 +1,177 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="Drone" Collapsed="true">
+    <Position X="6" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BpACgaMAEQI5BIAEAAIAYQQQAAkAEMRBAQTAIAHAADA=</HashCode>
+      <FileName>DroneFeatures.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KalmanFilterPositionOnly" Collapsed="true">
+    <Position X="11.25" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAIAAAAAAAAAAAgAYGCAIAAAAAAAIAAAAACgAEAAA=</HashCode>
+      <FileName>GPSSoliders.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="IMU" Collapsed="true">
+    <Position X="0.5" Y="8.25" Width="1.5" />
+    <InheritanceLine Type="Sensors" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="2.188" Y="7.062" />
+        <Point X="2.188" Y="7.951" />
+        <Point X="0.902" Y="7.951" />
+        <Point X="0.902" Y="8.61" />
+        <Point X="1.25" Y="8.61" />
+        <Point X="1.25" Y="8.25" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAQAAAAAAAQAAAAAAAAAAQAgAAAAAAAAAA=</HashCode>
+      <FileName>IMU.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KalmanFilter" Collapsed="true">
+    <Position X="9.5" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>QAAACAQQUEAAAAAAAAAAAAAQAAAAAAIAAABgGABkIAA=</HashCode>
+      <FileName>KalmanFilter.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="GPS" Collapsed="true">
+    <Position X="2.25" Y="8.25" Width="1.5" />
+    <InheritanceLine Type="Sensors" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="3" Y="7.062" />
+        <Point X="3" Y="7.625" />
+        <Point X="3" Y="7.625" />
+        <Point X="3" Y="8.25" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAAAAAEAAAAAAAAAAAAAgAAIAAABEAAAAAAAAAAAAAA=</HashCode>
+      <FileName>GPS.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="KDTree" Collapsed="true">
+    <Position X="6" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAECBAABAAAEAAAAAAgAAAAAIAAAAAAAAAAABhAQ=</HashCode>
+      <FileName>KDTree.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Sensors" Collapsed="true">
+    <Position X="1.75" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAIAAAAAAAAAAAAAAAAgAAIAAAAAAAAAAABACEA=</HashCode>
+      <FileName>Sensors.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Soldiers" Collapsed="true">
+    <Position X="11.25" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>Soldiers.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="lidarCameraSynchronization" Collapsed="true">
+    <Position X="9.5" Y="6.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAQAAAQAAAAAABEEAAAAAAAAgABAgAAAAAAAAABA=</HashCode>
+      <FileName>lidarCameraSynchronization.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="Lidar" Collapsed="true">
+    <Position X="4.25" Y="8.25" Width="1.5" />
+    <InheritanceLine Type="Sensors" ManuallyRouted="true" FixedFromPoint="true">
+      <Path>
+        <Point X="3.25" Y="6.812" />
+        <Point X="4.01" Y="6.812" />
+        <Point X="4.01" Y="8.596" />
+        <Point X="4.25" Y="8.596" />
+      </Path>
+    </InheritanceLine>
+    <TypeIdentifier>
+      <HashCode>AAwAAACAAIIEAIAAAIAAAAAAAEACQAAAAAAAQAAAAAA=</HashCode>
+      <FileName>Lidar.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Struct Name="Vector3" Collapsed="true">
+    <Position X="6" Y="10" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAQAAAAA=</HashCode>
+      <FileName>DroneFeatures.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Vertex" Collapsed="true">
+    <Position X="9.5" Y="10" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAQIAAAA=</HashCode>
+      <FileName>Graph.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Node" Collapsed="true">
+    <Position X="7.75" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAABAAAAAAAAAAAAIACAAAAAAAAAAgAA=</HashCode>
+      <FileName>Object.cpp</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Point" Collapsed="true">
+    <Position X="9.5" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAABgAQAAAAA=</HashCode>
+      <FileName>PointInSpace.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Motor" Collapsed="true">
+    <Position X="6" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAIAAAAAIAAAAAAAABAAAAAAAQAAAAAAAAAAAAA=</HashCode>
+      <FileName>DroneFeatures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="droneDimension" Collapsed="true">
+    <Position X="11.25" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAYAQEAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>DroneFeatures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Velocity" Collapsed="true">
+    <Position X="7.75" Y="10" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>EAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAEAAAAAEAAA=</HashCode>
+      <FileName>DroneFeatures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Acceleration" Collapsed="true">
+    <Position X="6" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAABAAAAAAAAAACAAAAEAAAAIAA=</HashCode>
+      <FileName>DroneFeatures.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Point2f" Collapsed="true">
+    <Position X="11.25" Y="9" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABgAAAAAAA=</HashCode>
+      <FileName>Object.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="BoundingBox" Collapsed="true">
+    <Position X="7.75" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAEAA=</HashCode>
+      <FileName>lidarCameraSynchronization.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="CameraIntrinsics" Collapsed="true">
+    <Position X="9.5" Y="8" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAEACAAAAAAAAAAAAAAAAAAAAkAA=</HashCode>
+      <FileName>lidarCameraSynchronization.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

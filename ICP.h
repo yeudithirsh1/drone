@@ -13,16 +13,17 @@
 using namespace std;
 using namespace Eigen;
 
-typedef struct {
+struct ICP_OUT{
     Eigen::Matrix4f trans;
     vector<float> distances;
     int iter;
-}  ICP_OUT;
+}  ;
 
-typedef struct {
+ 
+struct NEIGHBOR{
     vector<float> distances;
     vector<int> indices;
-} NEIGHBOR;
+} ;
 
 Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B);
 

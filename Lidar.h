@@ -4,9 +4,11 @@
 #include "PointInSpace.h" // כולל את הקובץ PointInSpace.h
 #include "ICP.h"
 #include "DroneFeatures.h" // כולל את הקובץ DroneFeatures.h
+#include "Sensors.h" // כולל את הקובץ Sensors.h
 using namespace std;
 
-class Lidar
+
+class Lidar : Sensors
 {
   private:
 	 vector<Point> currentScan;      // סריקה נוכחית

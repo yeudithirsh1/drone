@@ -10,6 +10,7 @@ private:
   float distanceBetweenMeasurements;  
   time_point timeMeasurements;  
 public:  
+  Sensors();
   Sensors(float distanceBetweenMeasurements, time_point timeMeasurements);  
   void setDistanceBetweenMeasurements(float distanceBetweenMeasurements);  
   float getDistanceBetweenMeasurements();  

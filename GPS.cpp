@@ -7,6 +7,8 @@
 
 using namespace std;
 
+GPS::GPS() : GPSLocation(0, 0, 0) // אתחול המיקום של ה-GPS
+{ }
 void GPS::UpdatePossion()
 {  
    ifstream file("src/GPS.txt");  

@@ -135,42 +135,46 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="DroneFeatures.h" />
+    <ClInclude Include="GPSSoliders.h" />
     <ClInclude Include="IMU.h" />
     <ClInclude Include="KalmanFilter.h" />
     <ClInclude Include="GPS.h" />
     <ClInclude Include="ICP.h" />
     <ClInclude Include="KDTree.h" />
-    <ClInclude Include="Lida.h" />
+    <ClInclude Include="Lidar.h" />
+    <ClInclude Include="lidarCameraSynchronization.h" />
     <ClInclude Include="measurement_package.h" />
-    <ClInclude Include="nevigation.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Sensors.h" />
     <ClInclude Include="Soldiers.h" />
-    <ClInclude Include="Synchronization.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="TreeAVL.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DroneCommands.cpp" />
     <ClCompile Include="DroneFeatures.cpp" />
+    <ClCompile Include="GPSSoliders.cpp" />
     <ClCompile Include="IMU.cpp" />
     <ClCompile Include="KalmanFilter.cpp" />
     <ClCompile Include="GPS.cpp" />
     <ClCompile Include="ICP.cpp" />
     <ClCompile Include="KDTree.cpp" />
-    <ClCompile Include="Lida.cpp" />
+    <ClCompile Include="Lidar.cpp" />
+    <ClCompile Include="lidarCameraSynchronization.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="mainKalman.cpp" />
-    <ClCompile Include="nevigation.cpp" />
+    <ClCompile Include="Graph.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PointInSpace.h" />
-    <ClCompile Include="Reading_sensors.cpp" />
     <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
-    <ClCompile Include="Synchronization.cpp" />
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="TreeAVL.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="drone.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
