@@ -56,8 +56,10 @@ private:
   float rho;  
   float velocity;  
   float acceleration;  
-  float yawRate = 0; // מהירות סיבוב סביב ציר האנכי, ביחידות rad/s  
-  float yaw;  
+  float yawRate = 0; // מהירות סיבוב סביב ציר האנכי, ביחידות rad/s
+  float pitchRate = 0; // מהירות סיבוב סביב ציר האופקי, ביחידות rad/s
+  float yaw;
+  float pitch;
   Motor motor1; // קדמי שמאל  
   Motor motor2; // קדמי ימין  
   Motor motor3; // אחורי שמאל  
@@ -85,8 +87,12 @@ public:
   void setAcceleration(float acceleration);  
   float getYawRate();  
   void setYawRate(float yawRate);  
-  float getYaw();  
+  float getYaw(); 
   void setYaw(float yow);  
+  float getPitch();
+  void setPitch(float pitch);
+  float getPitchRate();
+  void setPitchRate(float pitchRate);
   Motor getMotor1();  
   void setMotor1(Motor motor1);  
   Motor getMotor2();  

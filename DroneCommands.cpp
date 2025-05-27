@@ -45,8 +45,7 @@ void calculateAirDensity(Drone drone)
 {
     float T = T0 - L * drone.getDronePos().z;//חישוב הטמפרטורה בגובה טיסת הרחפן
     float P = P0 * pow((1 - (L * drone.getDronePos().z) / T0), (g / (R * L))); // חישוב הלחץ בגובה טיסת הרחפן
-
-    float rho = P / (R * T); // צפיפות האוויר בגובה טיסת הרחפן
+    drone.setRho(P / (R * T)); // צפיפות האוויר בגובה טיסת הרחפן
 
 }
 
@@ -215,7 +214,7 @@ void adjustMotorsToRotate(Drone drone, float currentYaw, float targetYaw) {
 }
 
 
-void updateOrientation(Drone drone)
+void updateOrientation(Drone drone, float dt)
 {
     float clockwiseThrust = drone.getMotor1().speed + drone.getMotor2().speed;
     float counterClockwiseThrust = drone.getMotor3().speed + drone.getMotor4().speed;
@@ -224,7 +223,7 @@ void updateOrientation(Drone drone)
     drone.setYawRate(counterClockwiseThrust - clockwiseThrust * drone.getYawRate());
 
     // עדכן את הזווית (בהנחה שהפונקציה קורית כל 0.01 שניות)
-    drone.setYaw(drone.getYaw() + drone.getYawRate() * 0.01f);
+    drone.setYaw(drone.getYaw() + drone.getYawRate() * dt);
 
     // דאג להשאיר את הזווית בתחום [0, 360)
     if (drone.getYaw() >= 360.0f) drone.setYaw(drone.getYaw() - 360.0f);
@@ -237,7 +236,7 @@ void wait(float seconds) {
 }
 
 
-void rotate(Drone drone, float deltaYawDegrees)
+void rotate(Drone drone, float deltaYawDegrees, float dt)
 {
     // חישוב זווית היעד
     float targetYaw = drone.getYaw() + deltaYawDegrees;
@@ -249,10 +248,87 @@ void rotate(Drone drone, float deltaYawDegrees)
         adjustMotorsToRotate(drone, deltaYawDegrees, drone.getYaw());
 
         // עדכון מצב הרחפן
-        updateOrientation(drone);
+        updateOrientation(drone, dt);
 
         // הדמיית זמן
         wait(0.01f);
     }
-    hover(drone);
+}
+
+void updateForwardMotion(Drone drone, float deltaTime)
+{
+    //  חישוב thrust כולל
+    float thrust = drone.getC_t() * pow(drone.getRpm(), 2);
+
+    //  זוויות
+    float pitch = drone.getPitch(); // ברדיאנים
+    float yaw = drone.getYaw();     // ברדיאנים
+
+    //  כוח thrust קדימה לפי pitch
+    float forwardThrust = thrust * sin(pitch);
+
+    //  תרגום ל־X ו־Y לפי yaw (מערכת גלובלית)
+    float fx = forwardThrust * cos(yaw); // רכיב thrust בציר X
+    float fy = forwardThrust * sin(yaw); // רכיב thrust בציר Y
+
+    //  חישוב גרר בציר X ו־Y
+    Velocity speed = drone.getSpeedInAxes();
+    float dragX = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vx * speed.vx;
+    float dragY = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vy * speed.vy;
+
+    // כיוון הגרר הפוך לכיוון התנועה
+    dragX *= (speed.vx > 0) ? -1 : 1;
+    dragY *= (speed.vy > 0) ? -1 : 1;
+
+    //  כוח נטו
+    float netFx = fx + dragX;
+    float netFy = fy + dragY;
+
+    //  חישוב תאוצה
+    Acceleration acceleration = drone.getAccelerationInAxes();
+    acceleration.ax = netFx / drone.getMass();
+    acceleration.ay = netFy / drone.getMass();
+    drone.setAccelerationInAxes(acceleration);
+
+    //  עדכון מהירות
+    speed.vx += acceleration.ax * deltaTime;
+    speed.vy += acceleration.ay * deltaTime;
+    drone.setSpeedInAxes(speed);
+
+    //  עדכון מיקום
+    Point pos = drone.getDronePos();
+    pos.x += speed.vx * deltaTime;
+    pos.y += speed.vy * deltaTime;
+    drone.setDronePos(pos);
+
+    //  עדכון כוללים
+    float vTotal = sqrt(speed.vx * speed.vx + speed.vy * speed.vy + speed.vz * speed.vz);
+    float aTotal = sqrt(acceleration.ax * acceleration.ax + acceleration.ay * acceleration.ay + acceleration.az * acceleration.az);
+    drone.setVelocity(vTotal);
+    drone.setAcceleration(aTotal);
+}
+
+void moveForward(Drone drone, float durationSeconds, float pitchAngleDegrees, float dt)
+{
+    // שמירה על הגובה ההתחלתי
+    float targetAltitude = drone.getDronePos().z;
+
+    // הטיית הרחפן קדימה
+    drone.setPitch(pitchAngleDegrees);
+
+    float elapsedTime = 0.0f;
+
+    while (elapsedTime < durationSeconds)
+    {
+        // חישוב צפיפות אוויר אם יש צורך
+        calculateAirDensity(drone);
+
+		updateForwardMotion(drone, dt); 
+
+        wait(dt);
+        elapsedTime += dt;
+    }
+
+    // החזרת pitch ל-0 כדי לעצור את ההתקדמות
+    drone.setPitch(0);
 }

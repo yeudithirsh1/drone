@@ -73,6 +73,14 @@ void Drone::setYawRate(float yawRate)
 {
 	this->yawRate = yawRate;
 }
+float Drone::getPitchRate()
+{
+	return pitchRate;
+}
+void Drone::setPitchRate(float pitchRate)
+{
+	this->pitchRate = pitchRate;
+}
 float Drone::getYaw()
 {
 	return yaw;
@@ -80,6 +88,14 @@ float Drone::getYaw()
 void Drone::setYaw(float yaw)
 {
 	this->yaw = yaw;
+}
+float Drone::getPitch()
+{
+	return pitch;
+}
+void Drone::setPitch(float pitch)
+{
+	this->pitch = pitch;
 }
 Motor Drone::getMotor1()
 {

@@ -298,12 +298,12 @@ float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<int
     for (int idx : cluster)
     {
         const auto& point = points[idx];
-        minX = std::min(minX, point[0]);
-        minY = std::min(minY, point[1]);
-        minZ = std::min(minZ, point[2]);
-        maxX = std::max(maxX, point[0]);
-        maxY = std::max(maxY, point[1]);
-        maxZ = std::max(maxZ, point[2]);
+        minX = min(minX, point[0]);
+        minY = min(minY, point[1]);
+        minZ = min(minZ, point[2]);
+        maxX = max(maxX, point[0]);
+        maxY = max(maxY, point[1]);
+        maxZ = max(maxZ, point[2]);
     }
 
     float dx = maxX - minX;
