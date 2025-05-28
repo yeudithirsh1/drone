@@ -114,12 +114,12 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
 
 
 
-NEIGHBOR nearest_neighbot(const Eigen::MatrixXf& src, const Eigen::MatrixXf& dst) {
+NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
     KDTree tree(dst);
     NEIGHBOR neigh;
 
     for (int i = 0; i < src.rows(); ++i) {
-        Eigen::Vector3f query = src.row(i).transpose();
+        Vector3f query = src.row(i).transpose();
         int nearest_idx = -1;
         float best_dist_sq = std::numeric_limits<float>::max();
         tree.nearest(query, nearest_idx, best_dist_sq);
@@ -130,7 +130,7 @@ NEIGHBOR nearest_neighbot(const Eigen::MatrixXf& src, const Eigen::MatrixXf& dst
     return neigh;
 }
 
-float dist(const Eigen::Vector3f& pta, const Eigen::Vector3f& ptb) {
+float dist(const Vector3f& pta, const Vector3f& ptb) {
     return sqrt((pta[0] - ptb[0]) * (pta[0] - ptb[0]) + (pta[1] - ptb[1]) * (pta[1] - ptb[1]) + (pta[2] - ptb[2]) * (pta[2] - ptb[2]));
 }
 

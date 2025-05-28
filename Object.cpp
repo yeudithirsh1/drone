@@ -10,7 +10,7 @@
 #include <iostream>
 #include "PointInSpace.h"
 #include "KDTree.h"
-
+#include "TreeAVL.h"
 
 using namespace Eigen;
 using namespace std;
@@ -20,6 +20,9 @@ const float Physical_depth = 3.2f;
 const float angleResDeg = 5.3f;
 
 vector<Point> listPoint = {};
+const double DEG_TO_RAD = M_PI / 180.0;
+const double RAD_TO_DEG = 180.0 / M_PI;
+
 
 //בדיקה האם נקודה נמצאת בימין המכשול או בשמאל
 int point_side_of_line(Point A, Point B, Point P)
@@ -28,87 +31,142 @@ int point_side_of_line(Point A, Point B, Point P)
     return cross;
 }
 
-//פונקציה לחישוב שיפוע בין 2 נקודות, משוואת ישר, ונקודת חיתוך בין 2 ישרים
-Point Intersection_points(Point startPos, Point goalPos, Point dronePos)
+void computeGreatCircleIntersection(
+    const Point& p1, const Point& p2,
+    const Point& p3, const Point& p4,
+    double& outLat, double& outLon)
 {
-    Point currentPoint1 = dronePos;
-    Point currentPoint2 = listPoint[listPoint.size() - 1];
-	float m1 = (goalPos.y - startPos.y) / (goalPos.x - startPos.x);
-    float b1 = startPos.y - m1 * startPos.x;
-	float x1 = (startPos.y - b1) / m1;
-	float m2 = (currentPoint2.y - currentPoint1.y) / (currentPoint2.x - currentPoint1.x);
-	float b2 = currentPoint1.y - m2 * currentPoint1.x;
-	float x2 = (currentPoint1.y - b2) / m2;
-	float intersectionPointx = (b2 - b1) / (m1 - m2);
-    float intersectionPointy = m1 * intersectionPointx + b1;
-    Point intersectionPoint = { intersectionPointx, intersectionPointy, startPos.z };
-    return intersectionPoint;
+    auto toVec = [](double latDeg, double lonDeg) {
+        double lat = latDeg * DEG_TO_RAD;
+        double lon = lonDeg * DEG_TO_RAD;
+        return array<double, 3>{
+            cos(lat)* cos(lon),
+                cos(lat)* sin(lon),
+                sin(lat)};
+        };
+
+    auto dot = [](const array<double, 3>& a, const array<double, 3>& b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        };
+
+    auto cross = [](const array<double, 3>& a, const array<double, 3>& b) {
+        return array<double, 3>{
+            a[1] * b[2] - a[2] * b[1],
+                a[2] * b[0] - a[0] * b[2],
+                a[0] * b[1] - a[1] * b[0]};
+        };
+
+    auto normalize = [&](const array<double, 3>& v) {
+        double norm = sqrt(dot(v, v));
+        return array<double, 3>{v[0] / norm, v[1] / norm, v[2] / norm};
+        };
+
+    auto isOnArc = [&](const array<double, 3>& A, const array<double, 3>& B, const array<double, 3>& P) {
+        double angleAP = acos(dot(A, P));
+        double anglePB = acos(dot(P, B));
+        double angleAB = acos(dot(A, B));
+        return std::abs((angleAP + anglePB) - angleAB) < 1e-8;
+        };
+
+    auto A = toVec(p1.x, p1.y);
+    auto B = toVec(p2.x, p2.y);
+    auto C = toVec(p3.x, p3.y);
+    auto D = toVec(p4.x, p4.y);
+
+    auto n1 = normalize(cross(A, B));
+    auto n2 = normalize(cross(C, D));
+
+    auto inter1 = normalize(cross(n1, n2));
+    auto inter2 = array<double, 3>{ -inter1[0], -inter1[1], -inter1[2] };
+
+    array<double, 3> chosen;
+
+    if (isOnArc(A, B, inter1) && isOnArc(C, D, inter1)) {
+        chosen = inter1;
+    }
+    else if (isOnArc(A, B, inter2) && isOnArc(C, D, inter2)) {
+        chosen = inter2;
+        outLat = asin(chosen[2]) * RAD_TO_DEG;
+        outLon = atan2(chosen[1], chosen[0]) * RAD_TO_DEG;
+    }
 }
 
-//מסננת ענן נקודות ומוצאת זווית פנויה לטיסה
-float findMostRightFreeGap(const vector<Point>& cloud,
-    Point droneStart,
-    Point droneTarget,
-    Point dronePos,
-    Point &pointOnLine,
-    Point &returnPoint,
-    float distance) {
 
-    if(point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size()-1]) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
-    || point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) < 0)
-       pointOnLine = Intersection_points(droneStart, droneTarget, dronePos);
-    else
-        if(point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
+void TheTwoPointsOnLine(Point droneStart,
+Point droneTarget,
+Point dronePos,
+Point dronePrevPos,
+Point& pointOnLine,
+Point& returnPoint)
+{
+    double outLat, outLon;
+    if (point_side_of_line(droneStart, droneTarget, dronePos) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
+        || point_side_of_line(droneStart, droneTarget, dronePos) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) < 0)
+         computeGreatCircleIntersection(droneStart, droneTarget, dronePos, dronePrevPos, outLon, outLat);
+    else if (point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
         || point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) > 0)
-           returnPoint = Intersection_points(droneStart, droneTarget, dronePos);
+        computeGreatCircleIntersection(droneStart, droneTarget, dronePos, dronePrevPos, outLon, outLat);
+}
 
-    vector<Point2f> projected;
-    for (const auto& p : cloud) {
-        float dz1 = dronePos.z + Physical_height / 2;
-        float dz2 = dronePos.z - Physical_height / 2;
-        float dx = p.x - dronePos.x;
-        float dy = p.y - dronePos.y;
-        float dist = sqrt(dx * dx + dy * dy);
-        if (p.z <= dz1 && p.z >= dz2 && dist < distance) {
-            projected.push_back({ p.x, p.y });
-        }
-    }
+
+//מסננת ענן נקודות ומוצאת זווית פנויה לטיסה
+float findMostRightFreeGap(const vector<Point>& cloud, Point dronePos) {
 
     Vector3f dronPoseVector = { dronePos.x, dronePos.y, dronePos.z };
-    bool foundInside = false;
-    float angle;
-    for (angle = -180; angle <= 180; angle += angleResDeg) {
+    float angle = -180; // התחלה מזווית שמאלית קיצונית
+    const float maxAngle = 180;
+    const float maxStepDeg = 10.0f; // גבול מקסימלי לקפיצת זווית
+    bool freeGapFound = false;
+
+    while (angle <= maxAngle) {
+        float angle_rad = angle * M_PI / 180.0f;
+        Vector3f forward(cos(angle_rad), sin(angle_rad), 0);
+        Vector3f up(0, 0, 1);
+        Vector3f right = forward.cross(up).normalized();
+
+        float minX = std::numeric_limits<float>::max();
+        bool foundInside = false;
+        Point mostLeftPoint;
+
         for (const auto& p : cloud) {
             Vector3f pVector = { p.x, p.y, p.z };
-            float angle_rad = angle * M_PI / 180.0f;
-
-            Vector3f forward(cos(angle_rad), sin(angle_rad), 0);
-            Vector3f up(0, 0, 1);
-            Vector3f right = forward.cross(up).normalized();
-
-            Vector3f center = dronPoseVector;
-            Vector3f delta = pVector - center;
+            Vector3f delta = pVector - dronPoseVector;
 
             float x = delta.dot(forward);
             float y = delta.dot(right);
-            float z = delta.dot(up);     
+            float z = delta.dot(up);
 
             bool inside = fabs(x) <= Physical_depth && fabs(y) <= Physical_width && fabs(z) <= Physical_height;
 
             if (inside) {
-                foundInside = true; 
-                break; // אין צורך לבדוק עוד, מצאנו
+                foundInside = true;
+                if (p.x < minX) {
+                    minX = p.x;
+                    mostLeftPoint = p;
+                }
             }
         }
         if (!foundInside) {
-           if(angle != 0)
-              listPoint.push_back(dronePos);
-           return angle;
-        }   
+            // מצאנו תיבה פנויה
+            if (angle != 0)
+                listPoint.push_back(dronePos);
+            return angle;
+        }
+        else {
+            // מחשבים את הזווית מחדש לפי הנקודה הכי שמאלית שמצאנו
+            Vector3f dir = { mostLeftPoint.x - dronePos.x, mostLeftPoint.y - dronePos.y, 0 };
+            float newAngle = atan2(dir.y(), dir.x()) * 180.0f / M_PI;
+
+            // הבדל בין הזווית החדשה לקודמת – כדי לוודא שלא תהיה קפיצה גדולה מדי
+            float deltaAngle = newAngle - angle;
+            if (fabs(deltaAngle) > maxStepDeg)
+                deltaAngle = (deltaAngle > 0 ? maxStepDeg : -maxStepDeg);
+
+            angle += deltaAngle;
+        }
     }
     return angle;
 }
-
 
 //פונקציה לסכימת אורך המסלול מימין ומשמאל
 float computePolylineLength(const vector<Point2f>& points) {
@@ -116,7 +174,7 @@ float computePolylineLength(const vector<Point2f>& points) {
     for (size_t i = 1; i < points.size(); ++i) {
         float dx = points[i].x - points[i - 1].x;
         float dy = points[i].y - points[i - 1].y;
-        length += std::sqrt(dx * dx + dy * dy);
+        length += sqrt(dx * dx + dy * dy);
     }
     return length;
 }
@@ -256,12 +314,12 @@ std::vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float d
 
 
 // מוצא את כל השכנים של נקודה אחת ומכניס אותם לאשכול
-void proximity(const vector<Eigen::Vector3f>& points, int idx,
-    vector<int>& cluster, vector<bool>& processed, KDTree* tree, float distanceTol)
+void proximity(vector<Point>& points, int idx,
+    vector<Point>& cluster, vector<bool>& processed, KDTree* tree, float distanceTol)
 {
     processed[idx] = true;
-    cluster.push_back(idx);
-    vector<float> neighbors = tree->radiusSearch(points[idx], distanceTol);
+    cluster.push_back(points[idx]);
+    vector<int> neighbors = tree->radiusSearch(points[idx], distanceTol);
     for (int i : neighbors)
     {
         if (!processed[i])
@@ -270,17 +328,17 @@ void proximity(const vector<Eigen::Vector3f>& points, int idx,
 }
 
 // בונה את רשימת האשכולות
-vector<vector<int>> euclideanCluster(const vector<Eigen::Vector3f>& points,
+vector<vector<Point>> euclideanCluster(vector<Point>& points,
     KDTree* tree, float distanceTol)
 {
-    vector<vector<int>> clusters;
+    vector<vector<Point>> clusters;
     vector<bool> processed(points.size(), false);
 
     for (int i = 0; i < points.size(); ++i)
     {
         if (!processed[i])
         {
-            vector<int> cluster;
+            vector<Point> cluster;
             proximity(points, i, cluster, processed, tree, distanceTol);
             clusters.push_back(cluster);
         }
@@ -290,63 +348,57 @@ vector<vector<int>> euclideanCluster(const vector<Eigen::Vector3f>& points,
 }
 
 // מחשב את אורך האלכסון של קופסה תוחמת של אשכול
-float computeClusterSize(const vector<Eigen::Vector3f>& points, const vector<int>& cluster)
+float computeClusterSize(vector<Point>& cluster)
 {
     float minX = FLT_MAX, minY = FLT_MAX, minZ = FLT_MAX;
     float maxX = -FLT_MAX, maxY = -FLT_MAX, maxZ = -FLT_MAX;
 
-    for (int idx : cluster)
+    for (const auto& point : cluster)
     {
-        const auto& point = points[idx];
-        minX = min(minX, point[0]);
-        minY = min(minY, point[1]);
-        minZ = min(minZ, point[2]);
-        maxX = max(maxX, point[0]);
-        maxY = max(maxY, point[1]);
-        maxZ = max(maxZ, point[2]);
+        minX = min(minX, point.x);
+        minY = min(minY, point.y);
+        minZ = min(minZ, point.z);
+        maxX = max(maxX, point.x);
+        maxY = max(maxY, point.y);
+        maxZ = max(maxZ, point.z);
     }
 
     float dx = maxX - minX;
     float dy = maxY - minY;
     float dz = maxZ - minZ;
 
-    return std::sqrt(dx * dx + dy * dy + dz * dz);
+    return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void DivisionIntoClusters(vector<Eigen::Vector3f> points)
+void DivisionIntoClusters(vector<Point> points)
 {
-    // שלב 1: בניית KDTree
+    // בניית KDTree
     KDTree tree;
     for (int i = 0; i < points.size(); ++i)
         tree.insert(points[i], i);
 
-    // שלב 2: אשכול לפי מרחק
+    // אשכול לפי מרחק
     float distanceTol = 1.5;
-    vector<vector<int>> clusters = euclideanCluster(points, &tree, distanceTol);
+    vector<vector<Point>> clusters = euclideanCluster(points, &tree, distanceTol);
 
-    // שלב 3: הפרדת אשכולות קטנים מגדולים
+    // הפרדת אשכולות קטנים מגדולים
     float minPhysicalSize = 1.0f;
 
-    vector<vector<int>> largeClusters;
-    vector<vector<int>> smallClusters;
+    vector<vector<Point>> largeClusters;
+    vector<vector<Point>> smallClusters;
 
-    for (const auto& cluster : clusters)
+    for (auto& cluster : clusters)
     {
-        float size = computeClusterSize(points, cluster);
+        float size = computeClusterSize(cluster);
 
         if (size <= minPhysicalSize)
             smallClusters.push_back(cluster);
+        else
+            largeClusters.push_back(cluster);
     }
+
 }
 
-
-
-struct Node {
-    int value;
-    Node* left;
-    Node* right;
-    Node* parent;
-};
 
 // מציאת הצומת השמאלי ביותר בתת עץ
 Node* LeftMost(Node* node) {
@@ -369,22 +421,54 @@ Node* successor(Node* node) {
     return node->parent;
 }
 
-bool checkTreeContainsAnotherTree1(Node* rootA, Node* rootB) {
+bool checkTreeContainsAnotherTree1(Node*& rootA, Node* rootB) {
     Node* a = LeftMost(rootA);
     Node* b = LeftMost(rootB);
 
-    while (a != nullptr && b != nullptr) {
-        while (b != nullptr && a->value > b->value) {
+    while (a != nullptr) {
+        if (b == nullptr) break;
+
+        if (a->value == b->value) {
+            Point val = a->value;  // שמירה כי a ייעלם לאחר remove
+            a = successor(a);
+            b = successor(b);
+            rootA = remove(rootA, val); // מחיקת הערך מ־A
+        }
+        else if (a->value < b->value) {
+            a = successor(a);
+        }
+        else { // b->value < a->value
             b = successor(b);
         }
-
-        if (b == nullptr || b->value > a->value) {
-            return false;
-        }
-
-        a = successor(a);
-        b = successor(b);
     }
-
     return true;
+}
+
+
+
+
+// פונקציה שבודקת אם יש נקודות מעל הרחפן בתיבה קבועה, ושומרת את הנקודה הכי שמאלית
+bool findLeftmostPointAbove(const vector<Point>& cloud, const Point& dronePos,
+    float width, float length, float height,
+    Point& leftmostPointOut) {
+    bool found = false;
+    float minX = std::numeric_limits<float>::max();
+
+    for (const auto& p : cloud) {
+        float dx = p.x - dronePos.x;
+        float dy = p.y - dronePos.y;
+        float dz = p.z - dronePos.z;
+
+        if (fabs(dx) <= length / 2 &&
+            fabs(dy) <= width / 2 &&
+            dz >= 0 && dz <= height) {
+
+            if (p.x < minX) {
+                minX = p.x;
+                leftmostPointOut = p;
+                found = true;
+            }
+        }
+    }
+    return found;
 }

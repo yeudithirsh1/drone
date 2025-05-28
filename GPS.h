@@ -12,5 +12,5 @@ public:
 	Point getGPSLocation() const { return GPSLocation; }
 	void setGPSLocation(float x, float y, float z) { GPSLocation = Point(x, y, z); }
 	void UpdatePossion();
-
+	double haversine(double lat1, double lon1, double lat2, double lon2);
 };

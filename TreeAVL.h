@@ -22,6 +22,7 @@ Node* createNode(Point value) {
     Node* node = new Node();
     node->value = value;
     node->left = node->right = nullptr;
+    node->parent= nullptr;
     node->height = 1;
     return node;
 }
@@ -66,13 +67,21 @@ Node* leftRotate(Node* x) {
 }
 
 // הוספה לעץ AVL
-Node* insert(Node* node, int key) {
-    if (!node) return createNode(key);
+Node* insert(Node* tree, Point value) {
+    return insertWithParent(tree, value, nullptr);
+}
 
-    if (key < node->key)
-        node->left = insert(node->left, key);
-    else if (key > node->key)
-        node->right = insert(node->right, key);
+Node* insertWithParent(Node* node, Point value, Node* parent) {
+    if (!node) {
+        Node* newNode = createNode(value);
+        newNode->parent = parent;
+        return newNode;
+    }
+
+    if (value < node->value)
+        node->left = insertWithParent(node->left, value, node);
+    else if (value > node->value)
+        node->right = insertWithParent(node->right, value, node);
     else
         return node; // אין כפילויות
 
@@ -81,24 +90,25 @@ Node* insert(Node* node, int key) {
     int balance = getBalanceFactor(node);
 
     // איזונים
-    if (balance > 1 && key < node->left->key)
+    if (balance > 1 && value < node->left->value)
         return rightRotate(node);
 
-    if (balance < -1 && key > node->right->key)
+    if (balance < -1 && value > node->right->value)
         return leftRotate(node);
 
-    if (balance > 1 && key > node->left->key) {
+    if (balance > 1 && value > node->left->value) {
         node->left = leftRotate(node->left);
         return rightRotate(node);
     }
 
-    if (balance < -1 && key < node->right->key) {
+    if (balance < -1 && value < node->right->value) {
         node->right = rightRotate(node->right);
         return leftRotate(node);
     }
 
     return node;
 }
+
 
 // פונקציה למציאת מינימום תת־עץ
 Node* minValueNode(Node* node) {
@@ -109,13 +119,13 @@ Node* minValueNode(Node* node) {
 }
 
 // מחיקת צומת מהעץ
-Node* remove(Node* root, int key) {
+Node* remove(Node* root, Point value) {
     if (!root) return root;
 
-    if (key < root->key)
-        root->left = remove(root->left, key);
-    else if (key > root->key)
-        root->right = remove(root->right, key);
+    if (value < root->value)
+        root->left = remove(root->left, value);
+    else if (value > root->value)
+        root->right = remove(root->right, value);
     else {
         // מקרה עם ילד אחד או ללא ילדים
         if (!root->left || !root->right) {
@@ -130,8 +140,8 @@ Node* remove(Node* root, int key) {
         }
         else {
             Node* temp = minValueNode(root->right);
-            root->key = temp->key;
-            root->right = remove(root->right, temp->key);
+            root->value = temp->value;
+            root->right = remove(root->right, temp->value);
         }
     }
 
@@ -160,27 +170,3 @@ Node* remove(Node* root, int key) {
     return root;
 }
 
-// הדפסה לפי סדר ביניים
-
-
-//int main() {
-//    Node* root = nullptr;
-//
-//    root = insert(root, 1);
-//    root = insert(root, 2);
-//    root = insert(root, 4);
-//    root = insert(root, 5);
-//    root = insert(root, 6);
-//    root = insert(root, 3);
-//
-//    cout << "Inorder traversal: ";
-//    inOrder(root);
-//    cout << endl;
-//
-//    root = remove(root, 4);
-//    cout << "After deleting 4: ";
-//    inOrder(root);
-//    cout << endl;
-//
-//    return 0;
-//}
