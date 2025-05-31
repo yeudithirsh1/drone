@@ -63,10 +63,16 @@
     <ClCompile Include="Graph.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TreeAVL.cpp">
+    <ClCompile Include="lidarCameraSynchronization.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="lidarCameraSynchronization.cpp">
+    <ClCompile Include="YOLO.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="imageToGpsConverter.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="YoloDecisionEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -81,9 +87,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Soldiers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Sensors.h">
@@ -107,11 +110,8 @@
     <ClInclude Include="GPSSoliders.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TreeAVL.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lidarCameraSynchronization.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="TreeAVL.cpp">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

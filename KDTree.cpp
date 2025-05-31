@@ -1,18 +1,13 @@
 #include "KDTree.h"
 #include <algorithm>
 #include <limits>
+#include <numeric>
 #include "PointInSpace.h"
+
 using namespace std;
 
-KDTree::KDTree() : valid(false) {}
 
-KDTree::KDTree(vector<Point>& data) {
-    if (data.empty()) {
-        valid = false;
-        return;
-    }
-    *this = KDTree(data, 0);
-}
+KDTree::KDTree() : valid(false) {}
 
 KDTree::KDTree(vector<Point>& points, int depth) {
     if (points.empty()) {
@@ -43,68 +38,138 @@ KDTree::KDTree(vector<Point>& points, int depth) {
         right = make_unique<KDTree>(right_pts, depth + 1);
 }
 
-void KDTree::insert(Point& new_point, int depth) {
-    if (!valid) {
-        point = new_point;
-        valid = true;
+
+KDTree::KDTree(MatrixXf& points, vector<int>& indices, int depth) {
+    if (points.rows() == 0) {
+        valid = false;
         return;
     }
 
     int axis = depth % 3;
-    float new_val = (axis == 0) ? new_point.x : (axis == 1) ? new_point.y : new_point.z;
-    float cur_val = (axis == 0) ? point.x : (axis == 1) ? point.y : point.z;
 
-    if (new_val < cur_val) {
-        if (left)
-            left->insert(new_point, depth + 1);
-        else
-            left = make_unique<KDTree>(vector<Point>{new_point}, depth + 1);
+    // שלב 1: יצירת סדר מיון לפי הציר
+    vector<size_t> order(points.rows());
+    iota(order.begin(), order.end(), 0);
+
+    sort(order.begin(), order.end(), [&](size_t i, size_t j) {
+        return points(i, axis) < points(j, axis);
+        });
+
+    // שלב 2: מיון לפי הסדר
+    MatrixXf sorted_points(points.rows(), 3);
+    vector<int> sorted_indices(indices.size());
+    for (size_t i = 0; i < order.size(); ++i) {
+        sorted_points.row(i) = points.row(order[i]);
+        sorted_indices[i] = indices[order[i]];
     }
-    else {
-        if (right)
-            right->insert(new_point, depth + 1);
-        else
-            right = make_unique<KDTree>(vector<Point>{new_point}, depth + 1);
+
+    int mid = sorted_points.rows() / 2;
+    point = { sorted_points(mid, 0), sorted_points(mid, 1), sorted_points(mid, 2) };
+    index = sorted_indices[mid];
+    valid = true;
+
+    if (mid > 0) {
+        MatrixXf left_pts = sorted_points.topRows(mid);
+        vector<int> left_indices(sorted_indices.begin(), sorted_indices.begin() + mid);
+        left = make_unique<KDTree>(left_pts, left_indices, depth + 1);
+    }
+
+    if (mid + 1 < sorted_points.rows()) {
+        MatrixXf right_pts = sorted_points.bottomRows(sorted_points.rows() - mid - 1);
+        vector<int> right_indices(sorted_indices.begin() + mid + 1, sorted_indices.end());
+        right = make_unique<KDTree>(right_pts, right_indices, depth + 1);
     }
 }
 
-bool KDTree::nearest(Point& target, Point& nearest_point_out, float& dist_sq_out) {
+
+// פונקציה מעודכנת שמחזירה אינדקס במקום נקודה
+bool KDTree::nearest(const Vector3f& target, int& nearest_index_out, float& dist_sq_out) {
     if (!valid) return false;
 
-    dist_sq_out = numeric_limits<float>::max();
+    dist_sq_out = std::numeric_limits<float>::max();
     bool found = false;
-    nearestSearch(target, 0, nearest_point_out, dist_sq_out, found);
+    nearestSearch(target, 0, nearest_index_out, dist_sq_out, found);
     return found;
 }
 
-void KDTree::nearestSearch(Point& target, int depth,
-    Point& best_point, float& best_dist_sq, bool& found) {
+void KDTree::nearestSearch(const Vector3f& target, int depth, int& best_index, float& best_dist_sq, bool& found) {
     if (!valid) return;
 
-    float dx = point.x - target.x;
-    float dy = point.y - target.y;
-    float dz = point.z - target.z;
+    float dx = point.x - target(0);
+    float dy = point.y - target(1);
+    float dz = point.z - target(2);
     float d = dx * dx + dy * dy + dz * dz;
 
     if (d < best_dist_sq) {
         best_dist_sq = d;
-        best_point = point;
+        best_index = index;
         found = true;
     }
 
     int axis = depth % 3;
-    float target_val = (axis == 0) ? target.x : (axis == 1) ? target.y : target.z;
+    float target_val = target(axis);
     float point_val = (axis == 0) ? point.x : (axis == 1) ? point.y : point.z;
 
     KDTree* near = (target_val < point_val) ? left.get() : right.get();
     KDTree* far = (target_val < point_val) ? right.get() : left.get();
 
-    if (near) near->nearestSearch(target, depth + 1, best_point, best_dist_sq, found);
+    if (near) near->nearestSearch(target, depth + 1, best_index, best_dist_sq, found);
 
     float diff = target_val - point_val;
     if (diff * diff < best_dist_sq && far)
-        far->nearestSearch(target, depth + 1, best_point, best_dist_sq, found);
+        far->nearestSearch(target, depth + 1, best_index, best_dist_sq, found);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 vector<Point> KDTree::radiusSearch(Point& target, float radius){
     vector<Point> result;

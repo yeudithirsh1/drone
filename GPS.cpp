@@ -26,7 +26,7 @@ void GPS::UpdatePossion()
 		   GPSLocation.x = pos2;
 		   GPSLocation.y = pos3;
            //מסנן קלמן
-           this_thread::sleep_for(std::chrono::seconds(2));  
+           this_thread::sleep_for(chrono::seconds(2));  
        }  
        file.close();  
    }  

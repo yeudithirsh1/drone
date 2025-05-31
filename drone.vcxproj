@@ -142,17 +142,16 @@
     <ClInclude Include="ICP.h" />
     <ClInclude Include="KDTree.h" />
     <ClInclude Include="Lidar.h" />
-    <ClInclude Include="lidarCameraSynchronization.h" />
     <ClInclude Include="Object.h" />
     <ClInclude Include="Sensors.h" />
-    <ClInclude Include="Soldiers.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="TreeAVL.h" />
+    <ClInclude Include="TreeAVL.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DroneCommands.cpp" />
     <ClCompile Include="DroneFeatures.cpp" />
     <ClCompile Include="GPSSoliders.cpp" />
+    <ClCompile Include="imageToGpsConverter.cpp" />
     <ClCompile Include="IMU.cpp" />
     <ClCompile Include="KalmanFilter.cpp" />
     <ClCompile Include="GPS.cpp" />
@@ -167,7 +166,8 @@
     <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="test.cpp" />
-    <ClCompile Include="TreeAVL.cpp" />
+    <ClCompile Include="YOLO.cpp" />
+    <ClCompile Include="YoloDecisionEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="drone.rc" />

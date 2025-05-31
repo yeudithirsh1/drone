@@ -11,11 +11,10 @@ using namespace Eigen;
 class KDTree {
 public:
     KDTree(); // עץ ריק
-	KDTree(vector<Point>& points);
     KDTree(vector<Point>& points, int depth);
-    void insert(Point& new_point, int depth = 0);
-    bool nearest(Point& target, Point& nearest_point_out, float& dist_sq_out);
-    void nearestSearch(Point& target, int depth, Point& best_point, float& best_dist_sq, bool& found);
+    KDTree(MatrixXf& points, vector<int>& indices, int depth);
+    bool nearest(const Vector3f& target, int& nearest_index_out, float& dist_sq_out);
+    void nearestSearch(const Vector3f& target, int depth, int& best_index, float& best_dist_sq, bool& found);
     vector<Point> radiusSearch(Point& target, float radius);
     void radiusSearchRec(Point& target, float radiusSq, int depth, vector<Point>& result);
 private:

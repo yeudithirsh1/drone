@@ -65,7 +65,7 @@ Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) 
 ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolerance) {
     int row = A.rows();
     MatrixXf src = MatrixXf::Ones(3 + 1, row);
-    MatrixXf src3d = MatrixXf::Ones(3, row);
+    MatrixXf src3f = MatrixXf::Ones(3, row);
     MatrixXf dst = MatrixXf::Ones(3 + 1, row);
     NEIGHBOR neighbor;
     Matrix4f T;
@@ -75,7 +75,7 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
 
     for (int i = 0; i < row; i++) {
         src.block<3, 1>(0, i) = A.block<1, 3>(i, 0).transpose();
-        src3d.block<3, 1>(0, i) = A.block<1, 3>(i, 0).transpose();
+        src3f.block<3, 1>(0, i) = A.block<1, 3>(i, 0).transpose();
         dst.block<3, 1>(0, i) = B.block<1, 3>(i, 0).transpose();
 
     }
@@ -83,20 +83,20 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
     float prev_error = 0;
     float mean_error = 0;
     for (int i = 0; i < max_iterations; i++) {
-        neighbor = nearest_neighbot(src3d.transpose(), B);
+        neighbor = nearest_neighbot(src3f.transpose(), B);
 
         for (int j = 0; j < row; j++) {
             dst_chorder.block<3, 1>(0, j) = dst.block<3, 1>(0, neighbor.indices[j]);
         }
 
-        T = best_fit_transform(src3d.transpose(), dst_chorder.transpose());
+        T = best_fit_transform(src3f.transpose(), dst_chorder.transpose());
 
         src = T * src;
         for (int j = 0; j < row; j++) {
-            src3d.block<3, 1>(0, j) = src.block<3, 1>(0, j);
+            src3f.block<3, 1>(0, j) = src.block<3, 1>(0, j);
         }
 
-        mean_error = std::accumulate(neighbor.distances.begin(), neighbor.distances.end(), 0.0) / neighbor.distances.size();
+        mean_error = accumulate(neighbor.distances.begin(), neighbor.distances.end(), 0.0) / neighbor.distances.size();
         if (abs(prev_error - mean_error) < tolerance) {
             break;
         }
@@ -104,7 +104,7 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
         iter = i + 2;
     }
 
-    T = best_fit_transform(A, src3d.transpose());
+    T = best_fit_transform(A, src3f.transpose());
     result.trans = T;
     result.distances = neighbor.distances;
     result.iter = iter;
@@ -115,7 +115,14 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
 
 
 NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
-    KDTree tree(dst);
+    // יצירת וקטור אינדקסים ל-points
+    vector<int> dst_indices(dst.rows());
+    iota(dst_indices.begin(), dst_indices.end(), 0); 
+
+    // יצירת עץ KD
+    MatrixXf dst_copy = dst; // העתקה כי הקונסטרקטור לא מקבל const
+    KDTree tree(dst_copy, dst_indices, 0);
+
     NEIGHBOR neigh;
 
     for (int i = 0; i < src.rows(); ++i) {
@@ -129,6 +136,7 @@ NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
 
     return neigh;
 }
+
 
 float dist(const Vector3f& pta, const Vector3f& ptb) {
     return sqrt((pta[0] - ptb[0]) * (pta[0] - ptb[0]) + (pta[1] - ptb[1]) * (pta[1] - ptb[1]) + (pta[2] - ptb[2]) * (pta[2] - ptb[2]));

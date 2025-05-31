@@ -10,7 +10,7 @@
 #include <iostream>
 #include "PointInSpace.h"
 #include "KDTree.h"
-#include "TreeAVL.h"
+#include "TreeAVL.cpp"
 
 using namespace Eigen;
 using namespace std;
@@ -315,17 +315,27 @@ std::vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float d
 
 // מוצא את כל השכנים של נקודה אחת ומכניס אותם לאשכול
 void proximity(vector<Point>& points, int idx,
-    vector<Point>& cluster, vector<bool>& processed, KDTree* tree, float distanceTol)
+    vector<Point>& cluster, vector<bool>& processed,
+    KDTree* tree, float distanceTol)
 {
     processed[idx] = true;
     cluster.push_back(points[idx]);
-    vector<int> neighbors = tree->radiusSearch(points[idx], distanceTol);
-    for (int i : neighbors)
+
+    vector<Point> neighbors = tree->radiusSearch(points[idx], distanceTol);
+
+    for (const Point& neighbor : neighbors)
     {
-        if (!processed[i])
-            proximity(points, i, cluster, processed, tree, distanceTol);
+        // חיפוש האינדקס של הנקודה השכנה בוקטור המקורי
+        auto it = find(points.begin(), points.end(), neighbor);
+        if (it != points.end())
+        {
+            int neighbor_idx = distance(points.begin(), it);
+            if (!processed[neighbor_idx])
+                proximity(points, neighbor_idx, cluster, processed, tree, distanceTol);
+        }
     }
 }
+
 
 // בונה את רשימת האשכולות
 vector<vector<Point>> euclideanCluster(vector<Point>& points,
@@ -372,10 +382,8 @@ float computeClusterSize(vector<Point>& cluster)
 
 void DivisionIntoClusters(vector<Point> points)
 {
-    // בניית KDTree
-    KDTree tree;
-    for (int i = 0; i < points.size(); ++i)
-        tree.insert(points[i], i);
+    // בונים את ה-KDTree בצורה רקורסיבית ומאוזנת
+    KDTree tree(points, 0);
 
     // אשכול לפי מרחק
     float distanceTol = 1.5;
@@ -396,7 +404,6 @@ void DivisionIntoClusters(vector<Point> points)
         else
             largeClusters.push_back(cluster);
     }
-
 }
 
 

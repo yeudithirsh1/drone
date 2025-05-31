@@ -36,51 +36,33 @@ ICP_OUT Lidar::getIcpTransformation()
     return icpTransformation;
 }
 
+void Lidar::loadPointCloudFromFile(Drone drone, const string& filePath) {
+    vector<Point> cloud;
 
-void Lidar::loadMultiplePointCloudsAsVectors(Drone drone, const vector<string>& filePaths) {
-    vector<vector<Point>> clouds;
+    ifstream file(filePath);
+    if (!file.is_open()) {
+        cerr << "Error opening file: " << filePath << endl;
+    }
 
-    for (const auto& path : filePaths) {
-        ifstream file(path);
-        if (!file.is_open()) {
-            cerr << "Error opening file: " << path << endl;
-            continue;
-        }
-
-        vector<Point> cloud;
-        string line;
-        while (getline(file, line)) {
-            istringstream iss(line);
-            Point p;
-            if (!(iss >> p.x >> p.y >> p.z)) {
-                // שורה לא תקינה, מדלגים
-                continue;
-            }
+    string line;
+    while (getline(file, line)) {
+        istringstream iss(line);
+        Point p;
+        if (iss >> p.x >> p.y >> p.z) {
             cloud.push_back(p);
         }
-
-        clouds.push_back(cloud);
+        else {
+            cerr << "Invalid line in file: " << line << endl;
+        }
     }
-    mergePointClouds(drone, clouds);
+    mergePointClouds(drone, cloud);
 }
 
-void Lidar::mergePointClouds(Drone drone, vector<vector<Point>>& clouds) {
-    vector<Point> merged;
 
-    // חישוב גודל כולל
-    size_t totalSize = 0;
-    for (const auto& cloud : clouds) {
-        totalSize += cloud.size();
-    }
-    merged.reserve(totalSize);
-
-    // מיזוג
-    for (const auto& cloud : clouds) {
-		merged.insert(merged.end(), cloud.begin(), cloud.end());
-    }
+void Lidar::mergePointClouds(Drone drone, vector<Point>& clouds) {
 
     // עדכון currentScan
-    currentScan = merged;
+    currentScan = clouds;
 
     // המרה למטריצות ישירות מתוך currentScan
     MatrixXf currentMat(currentScan.size(), 3);
