@@ -6,7 +6,7 @@
 #include <chrono> 
 
 using namespace std;
-const double EARTH_RADIUS_KM = 6371.0;
+const float EARTH_RADIUS_KM = 6371.0;
 #ifndef M_PI  
 #define M_PI 3.14159265358979323846  
 #endif  
@@ -18,7 +18,7 @@ void GPS::UpdatePossion()
    try  
    {  
        string line;  
-       while (std::getline(file, line))  
+       while (getline(file, line))  
        {  
            istringstream iss(line);  
            iss >> pos1 >> pos2 >> pos3;  
@@ -43,7 +43,7 @@ double deg2rad(double deg) {
 }
 
 // פונקציית Haversine
-double GPS::haversine(double lat1, double lon1, double lat2, double lon2) {
+float haversine(float lat1, float lon1, float lat2, float lon2) {
     // המרת הקואורדינטות לרדיאנים
     lat1 = deg2rad(lat1);
     lon1 = deg2rad(lon1);
@@ -51,13 +51,12 @@ double GPS::haversine(double lat1, double lon1, double lat2, double lon2) {
     lon2 = deg2rad(lon2);
 
     // הפרשים
-    double dlat = lat2 - lat1;
-    double dlon = lon2 - lon1;
+    float dlat = lat2 - lat1;
+    float dlon = lon2 - lon1;
 
     // נוסחת Haversine
-    double a = std::pow(std::sin(dlat / 2), 2) +
-        std::cos(lat1) * std::cos(lat2) * std::pow(std::sin(dlon / 2), 2);
-    double c = 2 * std::atan2(std::sqrt(a), std::sqrt(1 - a));
+    float a = pow(sin(dlat / 2), 2) + cos(lat1) * cos(lat2) * pow(sin(dlon / 2), 2);
+    float c = 2 * atan2(sqrt(a), sqrt(1 - a));
 
     // חישוב המרחק
     return EARTH_RADIUS_KM * c;

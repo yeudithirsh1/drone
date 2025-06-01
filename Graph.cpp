@@ -2,23 +2,60 @@
 #include <vector>
 #include <algorithm>
 #include <cmath>
+#include "GPS.h"  
+
 using namespace std;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 struct Vertex
 {
     float x, y, z;
     Vertex* next;
+    Vertex(float x, float y, float z, Vertex* next = nullptr)
+        : x(x), y(y), z(z), next(next) {
+    }
 
 };
-
-// חישוב מכפלה וקטורית
-float crossProduct(const Vertex &a, const Vertex &b, const Vertex &c)
-{
-    return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
+//המרה ממעלות לרדיינים
+float toRadians(float degrees) {
+    return degrees * M_PI / 180.0;
+}
+// ממירה מרדיינים למעלות
+float toDegrees(float radians) {
+    return radians * 180.0 / M_PI;
 }
 
-// מציאת נקודות קיצון
-void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
+// חישוב כיוון (bearing) בין שתי נקודות על פני כדור - סיבוב בין 2 נקודות ביחס לצפון
+float bearingOrAzimuth(float lat1, float lon1, float lat2, float lon2, bool d) {
+    lat1 = toRadians(lat1);
+    lon1 = toRadians(lon1);
+    lat2 = toRadians(lat2);
+    lon2 = toRadians(lon2);
+
+    float dLon = lon2 - lon1;
+    float x = sin(dLon) * cos(lat2);
+    float y = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+    float brng, azimuth;
+    if (d) {
+        brng = atan2(x, y);
+        return fmod(toDegrees(brng) + 2 * M_PI, 2 * M_PI); // להחזיר ערך בין 0 ל-360
+    }
+    azimuth = atan2(y, x);
+    return toDegrees(fmod((azimuth + 2 * M_PI), 2 * M_PI)); // תוצאה בין 0 ל־360
+}
+
+float relativeBearing(Vertex A, Vertex B, Vertex C, bool d) {
+    float brngAB = bearingOrAzimuth(A.x, A.y, B.x, B.y, d);
+    float brngAC = bearingOrAzimuth(A.x, A.y, C.x, C.y, d);
+    float diff = fmod(brngAC - brngAB + 540.0, 360.0) - 180.0;
+    return diff;
+}
+
+// מציאת הנקודות החיצוניות של הצורה
+void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull, bool d)
 {
     sort(Vertexs.begin(), Vertexs.end(), [](Vertex &a, Vertex &b) 
     {
@@ -26,7 +63,8 @@ void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
     });
     for (const auto &p : Vertexs) 
     {
-        while (hull.size() >= 2 && crossProduct(hull[hull.size() - 2], hull.back(), p) <= 0) 
+
+        while (hull.size() >= 2 && relativeBearing(hull[hull.size() - 2], hull.back(), p, d) <= 0)
         {
             hull.pop_back();
         }
@@ -35,7 +73,7 @@ void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
     int lowerSize = hull.size();
     for (auto it = Vertexs.rbegin(); it != Vertexs.rend(); ++it) 
     {
-        while (hull.size() > lowerSize && crossProduct(hull[hull.size() - 2], hull.back(), *it) <= 0) 
+        while (hull.size() > lowerSize && relativeBearing(hull[hull.size() - 2], hull.back(), *it, d) <= 0)
         {
             hull.pop_back();
         }
@@ -44,52 +82,42 @@ void convexHull(vector<Vertex> &Vertexs, vector<Vertex> &hull)
     hull.pop_back(); // הסרת נקודת הסיום המיותרת
 }
 
-//(יצירת קשתות (מחבר את הנקודות בצורה מחזורית
-vector<pair<Vertex, Vertex>> createEdges(vector<Vertex> &Vertexs) 
-{
-    vector<pair<Vertex, Vertex>> edges;
-    int n = Vertexs.size();
-    for (int i = 0; i < n; ++i) 
-    {
-        edges.push_back({Vertexs[i], Vertexs[(i + 1) % n] });
-    }
-    return edges;
+pair<float, float> destinationPoint(float lat, float lon, float azimuthDeg, float distanceMeters) {
+    float R = 6371000.0; // רדיוס כדור הארץ במטרים
+    float bearing = toRadians(azimuthDeg);
+    float delta = distanceMeters / R;
+
+    lat = toRadians(lat);
+    lon = toRadians(lon);
+
+    float newLat = asin(sin(lat) * cos(delta) + cos(lat) * sin(delta) * cos(bearing));
+    float newLon = lon + atan2(sin(bearing) * sin(delta) * cos(lat),
+        cos(delta) - sin(lat) * sin(newLat));
+
+    return { toDegrees(newLat), toDegrees(newLon) };
 }
 
-bool isOnLine(Vertex A, Vertex B, Vertex P) {
-    if (A.x == B.x) { // בדיקה אם הישר אנכי
-        return std::abs(P.x - A.x) < 1e-6; // כל נקודה עם אותו x נמצאת על הישר
-    }
-    float slope = (B.y - A.y) / (B.x - A.x); // חישוב שיפוע הישר
-    float expectedY = slope * (P.x - A.x) + A.y; // חישוב ה-y הצפוי של P על פי משוואת הישר
-    return std::abs(P.y - expectedY) < 1e-6; // סובלנות קטנה לשגיאות חישוב
-}
+
 
 //שמירת כל הנקודות שנמצאות על ישר עם הפרש של רדיוס בין כל נקודה
-vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float step, bool flag) {
+vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float fieldView, bool flag, bool d) {
     vector<Vertex> Vertexs;
-    if (A.y == B.y) {
-        if (flag)
-            Vertexs.push_back({ A.x, A.y, A.z, nullptr });
-        Vertexs.push_back({ B.x, B.y, A.z, nullptr });
-        return Vertexs;
+    if (flag)
+        Vertexs.push_back({ A.x, A.y, A.z, nullptr });
+    float distance = haversine(A.x, A.y, B.x, B.y);
+    int steps = distance / fieldView;
+
+    float azimuth = bearingOrAzimuth(A.x, A.y, B.x, B.y, d); // מעלות
+
+    for (int i = 1; i <= steps; i++) {
+        float r = i * fieldView;
+        auto point = destinationPoint(A.x, A.y, azimuth, r);
+        Vertex P = { point.first, point.second, A.z, nullptr };
+        Vertexs.push_back(P);
     }
-
-    float distance = sqrt(pow(B.x - A.x, 2) + pow(B.y - A.y, 2));
-    int steps = distance / step;
-    float dx = (B.x - A.x) / distance * step;
-    float dy = (B.y - A.y) / distance * step;
-
-    for (int i = 0; i <= steps; i++) {
-        Vertex P = { A.x + i * dx, A.y + i * dy, A.z, nullptr};
-        if (isOnLine(A, B, P)) {
-            if (i == 0 && !flag) continue; // דילוג על הנקודה הראשונה אם flag שווה false
-            Vertexs.push_back({ P.x, P.y, A.z, nullptr });
-        }
-    }
-
     return Vertexs;
 }
+
 
 vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 	bool flag = true;
@@ -168,20 +196,21 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
 }
 
 // פונקציה ראשית
-vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Vertexs, float fieldView)
+vector<vector<Vertex>> graphNavigationPath(vector<Vertex> &Landmarks, float fieldView)
 {
+	bool flag = true, d = true;
     vector<Vertex> hull;
-	convexHull(Vertexs, hull);
-    vector<pair<Vertex, Vertex>> edges = createEdges(hull);
-    vector<vector<Vertex>> VertexsOnLines;
-	bool flag = true;
-    for (int i = 0; i < edges.size(); ++i)
+	convexHull(Landmarks, hull, d);//חישוב המעטפה הקמורה 
+    vector<vector<Vertex>> VertexsOnLines;//גרף
+    d = false;
+    for (int i = 1; i < hull.size(); ++i)
     { 
-        if (i != 0)
+        if (i != 1)
 		{
 			flag = false;
+            vector<Vertex> lineVertexs = generateVertexsOnLine(hull[i-1], hull[i], fieldView, flag, d);
 		}
-        vector<Vertex> lineVertexs = generateVertexsOnLine(edges[i].first, edges[i].second, fieldView, flag);
+        vector<Vertex> lineVertexs = generateVertexsOnLine(VertexsOnLines[i-1][VertexsOnLines.size()-1], hull[i], fieldView, flag, d);
         VertexsOnLines.push_back(lineVertexs);
     }
     if (!VertexsOnLines.empty() && !VertexsOnLines.back().empty()) 

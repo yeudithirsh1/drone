@@ -55,11 +55,11 @@ void my_random_shuffle(Eigen::MatrixXf& matrix) {
     }
 
     // מחולל אקראי
-    std::random_device rd;
-    std::mt19937 g(rd());
+    random_device rd;
+    mt19937 g(rd());
 
     // ערבוב מודרני
-    std::shuffle(temp.begin(), temp.end(), g);
+    shuffle(temp.begin(), temp.end(), g);
 
     for (int jj = 0; jj < row; jj++) {
         matrix.block<1, 3>(jj, 0) = temp[jj].transpose();

@@ -61,7 +61,7 @@ void worker() {
             }
         }
 
-        std::ifstream file(path);
+        ifstream file(path);
         if (file.is_open()) {
             string new_value;
             getline(file, new_value);
@@ -71,7 +71,7 @@ void worker() {
             data_store[path] = new_value;  // עדכון המילון
         }
         else {
-            std::cerr << "Error reading " << path << std::endl;
+            cerr << "Error reading " << path << std::endl;
         }
     }
 }

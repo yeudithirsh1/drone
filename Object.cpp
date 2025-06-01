@@ -287,9 +287,9 @@ Point2f getNormal(const Point2f& v) {
 }
 
 // Inflate or deflate polygon
-std::vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float distance) {
+vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float distance) {
     int n = polygon.size();
-    std::vector<Point2f> inflated;
+    vector<Point2f> inflated;
 
     for (int i = 0; i < n; ++i) {
         Point2f prev = polygon[(i - 1 + n) % n];

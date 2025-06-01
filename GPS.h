@@ -1,4 +1,3 @@
-#pragma once  
 #include "pointInSpace.h" 
 #include "Sensors.h"
 
@@ -12,5 +11,6 @@ public:
 	Point getGPSLocation() const { return GPSLocation; }
 	void setGPSLocation(float x, float y, float z) { GPSLocation = Point(x, y, z); }
 	void UpdatePossion();
-	double haversine(double lat1, double lon1, double lat2, double lon2);
 };
+    double deg2rad(double deg);
+	float haversine(float lat1, float lon1, float lat2, float lon2);
