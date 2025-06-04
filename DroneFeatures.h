@@ -2,9 +2,10 @@
 #include "pointInSpace.h" // כולל את הקובץ pointSpace.h  
 #include <vector> // Include the vector header for std::vector  
 #include <Eigen/Dense> // Include Eigen for Vector3  
-
 using std::vector; // Use the std namespace for vector  
 using Eigen::Vector3f; // Use Eigen's Vector3f for 3D vector representation  
+
+extern const float g; // רק הצהרה
 
 struct Motor {
 	bool isActive;     // האם המנוע פעיל
@@ -51,9 +52,10 @@ private:
   const float mass = 1.5f;  
   const float A = 0.05f;  
   const float C_d = 1.0f;  
-  const float C_t = 0.1f;  
+  const float C_t = 0.1f; 
+  const float hoverSpeed = sqrt(mass * g / C_t);
   float rpm;  
-  float rho;  
+  float rho;  //צפיפות האוויר
   float velocity;  
   float acceleration;  
   float yawRate = 0; // מהירות סיבוב סביב ציר האנכי, ביחידות rad/s
@@ -76,7 +78,8 @@ public:
   float getMass();  
   float getA();  
   float getC_d();  
-  float getC_t();  
+  float getC_t(); 
+  float getHoverSpeed();
   float getRpm();  
   void setRpm(float rpm);  
   float getRho();  
@@ -109,5 +112,9 @@ public:
   void setSpeedInAxes(Velocity SpeedInAxes);  
   Acceleration getAccelerationInAxes();  
   void setAccelerationInAxes(Acceleration AccelerationInAxes);  
-  void computeLinearAcceleration(const vector<Vector3f>& velocities, const vector<float>& times);  
-};
+}; 
+
+
+
+
+//void computeLinearAcceleration(const vector<Vector3f>& velocities, const vector<float>& times);  

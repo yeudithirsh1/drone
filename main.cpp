@@ -1,6 +1,11 @@
 #include <iostream>
 #include <vector>
-#include "Graph.cpp"
+#include <thread>
+#include "Graph.h"
+#include "DroneFeatures.h"
+#include "processTakingOff.h"
+#include "GPS.h"
+#include "IMU.h"
 using namespace std;
 
 int main() 
@@ -25,22 +30,23 @@ int main()
         Landmarks.emplace_back(x, y, height, nullptr);
     }
     //טווח הראייה של הרחפן
-    int fieldView = 2;
+    float fieldView = 2;
     //עד כאן
     
 
     //מפה לסריקה
-    vector<vector<Vertex>> edges = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
-    //מיקום הרחפן
-    Vertex location = edges[0][0];
-    //גובה הרחפן
-    location.z = 0;
-    //drone_commands Drone;
-    //float mass = 1.5; // Example mass in kg
-    //float targetAltitude = height; // Example target altitude in meters
-    //float A = 0.5; // Example area in m^2
-    //float C_d = 1.2; // Example drag coefficient
-    //float C_t = 0.8; // Example thrust coefficient
-    //Drone.takeof(mass, targetAltitude, A, C_d, C_t);
+    vector<vector<Vertex>> graph = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
+    Point point = { graph[0][0].x, graph[0][0].y, 0 };
+    Drone drone;
+    GPS sensorGPS;
+    IMU sensorIMU;
+
+    drone.setDronePos(point);//מיקום הרחפן
+    string filePath = "fbb";
+    thread gpsThread(&GPS::UpdatePossion, &sensorGPS);
+
+    processTakingOff(drone, filePath);    //תהליך המראה
+
+
    return 0;
 }

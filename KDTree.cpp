@@ -82,7 +82,6 @@ KDTree::KDTree(MatrixXf& points, vector<int>& indices, int depth) {
 }
 
 
-// פונקציה מעודכנת שמחזירה אינדקס במקום נקודה
 bool KDTree::nearest(const Vector3f& target, int& nearest_index_out, float& dist_sq_out) {
     if (!valid) return false;
 
@@ -119,58 +118,6 @@ void KDTree::nearestSearch(const Vector3f& target, int depth, int& best_index, f
     if (diff * diff < best_dist_sq && far)
         far->nearestSearch(target, depth + 1, best_index, best_dist_sq, found);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 vector<Point> KDTree::radiusSearch(Point& target, float radius){
     vector<Point> result;
     float radiusSq = radius * radius;

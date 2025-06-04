@@ -54,7 +54,7 @@
     <ClCompile Include="DroneCommands.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Lidar.cpp">
+    <ClCompile Include="LIDAR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="GPSSoliders.cpp">
@@ -73,6 +73,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="YoloDecisionEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="processTakingOff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -104,7 +107,7 @@
     <ClInclude Include="IMU.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Lidar.h">
+    <ClInclude Include="LIDAR.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GPSSoliders.h">
@@ -112,6 +115,15 @@
     </ClInclude>
     <ClInclude Include="TreeAVL.cpp">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Graph.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DroneCommands.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="processTakingOff.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

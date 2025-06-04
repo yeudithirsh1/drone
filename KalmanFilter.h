@@ -8,7 +8,7 @@ public:
     KalmanFilter();
 
     void init(float dt);
-    void predict(float dt, const Eigen::Vector3f& u);
+    void predict(float dt, const Eigen::Vector3f& u, float pitch);
     void updateGPS(const Eigen::Matrix<float, 3, 1>& position);
     void updateLidar(const Eigen::Matrix<float, 3, 1>& position);
     void updateIMU(const Eigen::Matrix<float, 3, 1>& linear_accel, float angular_velocity_z, float angular_velocity_y);

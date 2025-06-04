@@ -7,7 +7,8 @@ class IMU : public Sensors
 {  
 private:  
   Acceleration acceleration;  
-  float yawRate;  
+  float yawRate; 
+  float pitchRate;
 public:  
   IMU(); // הכרזה על הבנאי במחלקה  
   void calculateSpeed();  

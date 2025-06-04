@@ -134,15 +134,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="DroneCommands.h" />
     <ClInclude Include="DroneFeatures.h" />
     <ClInclude Include="GPSSoliders.h" />
+    <ClInclude Include="Graph.h" />
     <ClInclude Include="IMU.h" />
     <ClInclude Include="KalmanFilter.h" />
     <ClInclude Include="GPS.h" />
     <ClInclude Include="ICP.h" />
     <ClInclude Include="KDTree.h" />
-    <ClInclude Include="Lidar.h" />
+    <ClInclude Include="LIDAR.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="processTakingOff.h" />
     <ClInclude Include="Sensors.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TreeAVL.cpp" />
@@ -157,12 +160,13 @@
     <ClCompile Include="GPS.cpp" />
     <ClCompile Include="ICP.cpp" />
     <ClCompile Include="KDTree.cpp" />
-    <ClCompile Include="Lidar.cpp" />
+    <ClCompile Include="LIDAR.cpp" />
     <ClCompile Include="lidarCameraSynchronization.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PointInSpace.h" />
+    <ClCompile Include="processTakingOff.cpp" />
     <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="test.cpp" />

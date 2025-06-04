@@ -1,11 +1,16 @@
 #include "DroneFeatures.h"
-#include <iostream>
 #include <cmath>
 #include <algorithm> // Add this include for std::max and std::min
-#include <windows.h>
+#include "GPS.h"
+#include <iostream>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 // קבועים
 const float T0 = 288.15; // טמפרטורת פני הים 
 const float P0 = 101325.0; // לחץ פני הים
@@ -13,322 +18,423 @@ const float L = 0.0065; // קצב ירידת טמפרטורה
 const float R = 287.05; // קבוע הגזים 
 const float g = 9.80665; // תאוצת הכובד 
 
-void startMotorsOrStopMotors(Drone drone, bool d, float initialSpeed)
+void startMotorsForTakeoff(Drone& drone, float hoverSpeed)
 {
-	drone.setMotor1(Motor(true, initialSpeed, -1));
-	drone.setMotor2(Motor(true, initialSpeed, 1));
-	drone.setMotor3(Motor(true, initialSpeed, -1));
-	drone.setMotor4(Motor(true, initialSpeed, 1));
+    drone.setMotor1(Motor(true, hoverSpeed, -1));//סיבוב שמאל
+    drone.setMotor2(Motor(true, hoverSpeed, 1));//סיבוב ימין
+    drone.setMotor3(Motor(true, hoverSpeed, -1));
+    drone.setMotor4(Motor(true, hoverSpeed, 1));
 }
 
-void IncreaseEngineSpeed(Drone drone)
+void AdjustEngineSpeed(Drone& drone)
 {
-    // הגברת מהירות המנועים בהדרגה עד למקסימום
-    if (drone.getMotor1().speed < 100)
+    // חישוב משקל הרחפן
+    float weight = drone.getMass() * g;
+
+    // חישוב גרר אוויר (בהנחה שיש מהירות אנכית נוכחית)
+    float velocity = drone.getVelocity();
+    float drag = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * pow(velocity, 2);
+
+    // חישוב כוח עילוי (Thrust) לפי RPM נוכחי
+    float thrust = drone.getC_t() * pow(drone.getRpm(), 2);
+
+    // השוואה – האם צריך להגביר את הדחף?
+    if (thrust < weight + drag)
     {
-        Motor motor1 = drone.getMotor1();
-        motor1.speed = drone.getMotor1().speed + 5.0f; // אתחול מהירות המנועים
-		drone.setMotor1(motor1);
-		Motor motor2 = drone.getMotor2();
-		motor2.speed = drone.getMotor2().speed + 5.0f; // אתחול מהירות המנועים
-		drone.setMotor2(motor2);
-		Motor motor3 = drone.getMotor3();
-		motor3.speed = drone.getMotor3().speed + 5.0f; // אתחול מהירות המנועים
-		drone.setMotor3(motor3);
-		Motor motor4 = drone.getMotor4();
-		motor4.speed = drone.getMotor4().speed + 5.0f; // אתחול מהירות המנועים
-		drone.setMotor4(motor4);
+        // עלייה מדורגת ב־RPM כדי ליצור יותר דחף
+        float newRpm = drone.getRpm() + 10.0f; // אפשר גם קצב מותאם
+        drone.setRpm(newRpm);
     }
+
+    // עדכון מהירות מנועים לפי RPM החדש
+    Motor m = drone.getMotor1();
+    m.speed = drone.getRpm();
+    drone.setMotor1(m);
+    m = drone.getMotor2();
+    m.speed = drone.getRpm();
+    drone.setMotor2(m);
+    m = drone.getMotor3();
+    m.speed = drone.getRpm();
+    drone.setMotor3(m);
+    m = drone.getMotor4();
+    m.speed = drone.getRpm();
+    drone.setMotor4(m);
 }
 
-void calculateAirDensity(Drone drone)
+
+void calculateAirDensity(Drone& drone)
 {
     float T = T0 - L * drone.getDronePos().z;//חישוב הטמפרטורה בגובה טיסת הרחפן
     float P = P0 * pow((1 - (L * drone.getDronePos().z) / T0), (g / (R * L))); // חישוב הלחץ בגובה טיסת הרחפן
     drone.setRho(P / (R * T)); // צפיפות האוויר בגובה טיסת הרחפן
-
 }
 
-void updateAltitude(Drone drone, float deltaTime)
+void UpdateFollowingProgress(Drone& drone, float dt)
 {
-    float thrust = drone.getC_t() * pow(drone.getRpm(), 2);//חישוב כוח הרמה
-    float drag = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * pow(drone.getVelocity(), 2); // חישוב כוח הגרר
-    float weight = drone.getMass() * g;// חישוב משקל הרחפן
-
-    float netForce = thrust - weight;// חישוב הכוח הנקי
-
-    if (drone.getSpeedInAxes().vz > 0)
-    {
-        netForce -= drag; // הפחתת כוח הגרר אם הרחפן עולה
-    }
-    else
-    {
-        netForce += drag; // הוספת כוח הגרר אם הרחפן יורד
-    }
-	Acceleration Acceleration = drone.getAccelerationInAxes();
-    Acceleration.az = netForce / drone.getMass();
-    drone.setAccelerationInAxes(Acceleration);// חישוב תאוצה
-	Velocity SpeedInAxes = drone.getSpeedInAxes();
-	SpeedInAxes.vz += drone.getAccelerationInAxes().az * deltaTime; // עדכון מהירות הרחפן
-    drone.setSpeedInAxes(SpeedInAxes);
-	Point dronePos = drone.getDronePos();
-	dronePos.z += drone.getVelocity() * deltaTime; // עדכון מיקום הרחפן בציר z
-	drone.setDronePos(dronePos); // עדכון גובה הרחפן
-    drone.setVelocity(sqrt(SpeedInAxes.vx * SpeedInAxes.vx + SpeedInAxes.vy * SpeedInAxes.vy + SpeedInAxes.vz * SpeedInAxes.vz));
-    drone.setAcceleration(sqrt(Acceleration.ax * Acceleration.ax + Acceleration.ay * Acceleration.ay + Acceleration.az * Acceleration.az));
-}
-
-// פונקציה לעדכון גובה על פי כוח הרמה, משקל ותנגודת האוויר
-void takeof(Drone drone)
-{
-    startMotorsOrStopMotors(drone, true, 0);
-    drone.setRpm(sqrt(drone.getMass() * g / drone.getC_t()));
-    // סימולציה של המראה
-    while (drone.getDronePos().z < drone.getTargetAltitude())
-    {
-        IncreaseEngineSpeed(drone); // הגברת מהירות המנועים
-        calculateAirDensity(drone); // חישוב צפיפות האוויר
-        updateAltitude(drone, 0.1);  // עדכון כל 0.1 שניות
-        drone.setRpm(drone.getRpm() + 10);// ככל שהרחפן גבוה יותר, מגדילים את RPM מעט
-    }
-}
-
-
-void decreaseMotorSpeed(Drone drone)
-{
-    // הפחתת מהירות המנועים בהדרגה
-	Motor motor1 = drone.getMotor1();
-    motor1.speed = max(motor1.speed - 5.0f, 0.0f); // הפחתת המהירות ב-5 כל פעם
-    drone.setMotor1(motor1);
-    Motor motor2 = drone.getMotor2();
-	motor2.speed = max(motor2.speed - 5.0f, 0.0f); // הפחתת המהירות ב-5 כל פעם
-	drone.setMotor2(motor2);
-	Motor motor3 = drone.getMotor3();
-    motor3.speed = max(motor3.speed - 5.0f, 0.0f);
-    drone.setMotor3(motor3);
-	Motor motor4 = drone.getMotor4();
-    motor4.speed = max(motor4.speed - 5.0f, 0.0f);
-    drone.setMotor4(motor4);
-}
-
-
-void land(Drone drone)
-{
-    // סימולציה של נחיתה
-    while (drone.getDronePos().z > 0.1)
-    {
-        drone.setRpm(drone.getRpm() - 10);// ככל שהרחפן גבוה יותר, מפחיתים את RPM מעט
-        decreaseMotorSpeed(drone); // הפחתת מהירות המנועים
-        calculateAirDensity(drone); // חישוב צפיפות האוויר
-        updateAltitude(drone, 1); // עדכון גובה כל 1 שניה
-    }
-    startMotorsOrStopMotors(drone, false, 0);
-    drone.setVelocity(0);
-    drone.setRpm(0);
-    Point point = drone.getDronePos();
-    point.z = 0;
-    drone.setDronePos(point);
-}
-
-
-float hover(Drone drone)
-{
-    startMotorsOrStopMotors(drone, true, 0);
-
-    drone.setRpm(sqrt(drone.getMass() * g / drone.getC_t()));
-    float hoverAltitude = drone.getDronePos().z;
-
-    while (abs(drone.getDronePos().z - hoverAltitude) > 0.1 || abs(drone.getSpeedInAxes().vz) > 0.1)
-    {
-        calculateAirDensity(drone);      // עדכון צפיפות האוויר
-        updateAltitude(drone, 0.1);        // עדכון פיזיקלי של הגובה והמהירות
-
-        // כיוונון RPM בהתאם לשינוי בגובה
-        if (drone.getDronePos().z < hoverAltitude)
-            drone.setRpm(drone.getRpm() + 5);
-        else if (drone.getDronePos().z > hoverAltitude)
-            drone.setRpm(drone.getRpm() - 5);
-
-        // Replace the problematic line with explicit usage of std::max and std::min  
-        drone.setRpm(max(0.0f, min(drone.getRpm(), drone.getMaxRPM())));
-    }
-    return drone.getRpm();
-}
-
-void setSpeed(Drone drone, Velocity newVelocity) {
-    drone.setSpeedInAxes(newVelocity);
-    drone.setVelocity(sqrt(newVelocity.vx * newVelocity.vx +
-        newVelocity.vy * newVelocity.vy +
-        newVelocity.vz * newVelocity.vz));
-}
-
-
-void adjustMotorsToRotate(Drone drone, float currentYaw, float targetYaw) {
-    float yawError = targetYaw - currentYaw;
-
-    float balancingSpeed = hover(drone);
-
-    Motor motor1 = drone.getMotor1();
-    motor1.speed = balancingSpeed; // הפחתת המהירות ב-5 כל פעם
-    drone.setMotor1(motor1);
-    Motor motor2 = drone.getMotor2();
-    motor2.speed = balancingSpeed; // הפחתת המהירות ב-5 כל פעם
-    drone.setMotor2(motor2);
-    Motor motor3 = drone.getMotor3();
-    motor3.speed = balancingSpeed;
-    drone.setMotor3(motor3);
-    Motor motor4 = drone.getMotor4();
-    motor4.speed = balancingSpeed;
-    drone.setMotor4(motor4);
-    // חישוב התאמה למהירות מנועים לפי הזווית
-    float adjustment = yawError * 2.0f; // מקדם פשוט, ניתן לשנות
-
-    while (yawError > 180.0f) yawError -= 360.0f;
-    while (yawError < -180.0f) yawError += 360.0f;
-
-    // הגבלת ערכים
-    if (adjustment > drone.getMaxRPM() / 2) adjustment = drone.getMaxRPM() / 2;
-    if (adjustment < -drone.getMaxRPM() / 2) adjustment = -drone.getMaxRPM() / 2;
-
-    if (yawError > 0) {
-        // סיבוב ימינה
-        motor1.speed -= adjustment;
-        motor2.speed += adjustment;
-        motor3.speed += adjustment;
-        motor4.speed -= adjustment;
-    }
-    else {
-        // סיבוב שמאלה
-        motor1.speed += adjustment;
-        motor2.speed -= adjustment;
-        motor3.speed -= adjustment;
-        motor4.speed += adjustment;
-    }
-
-    // maxRPM הגבלת מהירות מנועים בין 0 ל־ 
-    Motor* motors[] = { &motor1, &motor2, &motor3, &motor4 };
-    for (int i = 0; i < 4; i++) {
-        if (motors[i]->speed > drone.getMaxRPM()) motors[i]->speed = drone.getMaxRPM();
-        if (motors[i]->speed < 0) motors[i]->speed = 0;
-    }
-}
-
-
-void updateOrientation(Drone drone, float dt)
-{
-    float clockwiseThrust = drone.getMotor1().speed + drone.getMotor2().speed;
-    float counterClockwiseThrust = drone.getMotor3().speed + drone.getMotor4().speed;
-
-    // חשב את מהירות הסיבוב לפי ההפרש
-    drone.setYawRate(counterClockwiseThrust - clockwiseThrust * drone.getYawRate());
-
-    // עדכן את הזווית (בהנחה שהפונקציה קורית כל 0.01 שניות)
-    drone.setYaw(drone.getYaw() + drone.getYawRate() * dt);
-
-    // דאג להשאיר את הזווית בתחום [0, 360)
-    if (drone.getYaw() >= 360.0f) drone.setYaw(drone.getYaw() - 360.0f);
-    if (drone.getYaw() < 0.0f) drone.setYaw(drone.getYaw() + 360.0f);
-}
-
-
-void wait(float seconds) {
-    Sleep(static_cast<DWORD>(seconds * 1000)); // המרה למילישניות
-}
-
-
-void rotate(Drone drone, float deltaYawDegrees, float dt)
-{
-    // חישוב זווית היעד
-    float targetYaw = drone.getYaw() + deltaYawDegrees;
-
-    // לולאה לסיבוב עד להגעה לזווית היעד
-    while (abs(drone.getYaw() - targetYaw) > 0.5f)
-    {
-        // סובב לפי כיוון (ימינה/שמאלה)
-        adjustMotorsToRotate(drone, deltaYawDegrees, drone.getYaw());
-
-        // עדכון מצב הרחפן
-        updateOrientation(drone, dt);
-
-        // הדמיית זמן
-        wait(0.01f);
-    }
-}
-
-void updateForwardMotion(Drone drone, float deltaTime)
-{
-    //  חישוב thrust כולל
     float thrust = drone.getC_t() * pow(drone.getRpm(), 2);
 
-    //  זוויות
-    float pitch = drone.getPitch(); // ברדיאנים
-    float yaw = drone.getYaw();     // ברדיאנים
+    float weight = drone.getMass() * 9.81f;
 
-    //  כוח thrust קדימה לפי pitch
-    float forwardThrust = thrust * sin(pitch);
+    float drag = 0.5f * drone.getC_d() * drone.getA() * drone.getRho() * pow(drone.getVelocity(), 2);
 
-    //  תרגום ל־X ו־Y לפי yaw (מערכת גלובלית)
-    float fx = forwardThrust * cos(yaw); // רכיב thrust בציר X
-    float fy = forwardThrust * sin(yaw); // רכיב thrust בציר Y
+    float netForce = thrust - weight;
+    if (drone.getSpeedInAxes().vz > 0)
+        netForce -= drag;  // גרר פועל נגד התנועה
+    else
+        netForce += drag;  // גרר עוזר בירידה
 
-    //  חישוב גרר בציר X ו־Y
+    float az = netForce / drone.getMass();
+
     Velocity speed = drone.getSpeedInAxes();
-    float dragX = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vx * speed.vx;
-    float dragY = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vy * speed.vy;
-
-    // כיוון הגרר הפוך לכיוון התנועה
-    dragX *= (speed.vx > 0) ? -1 : 1;
-    dragY *= (speed.vy > 0) ? -1 : 1;
-
-    //  כוח נטו
-    float netFx = fx + dragX;
-    float netFy = fy + dragY;
-
-    //  חישוב תאוצה
-    Acceleration acceleration = drone.getAccelerationInAxes();
-    acceleration.ax = netFx / drone.getMass();
-    acceleration.ay = netFy / drone.getMass();
-    drone.setAccelerationInAxes(acceleration);
-
-    //  עדכון מהירות
-    speed.vx += acceleration.ax * deltaTime;
-    speed.vy += acceleration.ay * deltaTime;
+    speed.vz += az * dt;
     drone.setSpeedInAxes(speed);
 
-    //  עדכון מיקום
     Point pos = drone.getDronePos();
-    pos.x += speed.vx * deltaTime;
-    pos.y += speed.vy * deltaTime;
+    pos.z += speed.vz * dt;
     drone.setDronePos(pos);
 
-    //  עדכון כוללים
-    float vTotal = sqrt(speed.vx * speed.vx + speed.vy * speed.vy + speed.vz * speed.vz);
-    float aTotal = sqrt(acceleration.ax * acceleration.ax + acceleration.ay * acceleration.ay + acceleration.az * acceleration.az);
-    drone.setVelocity(vTotal);
-    drone.setAcceleration(aTotal);
+    float totalVelocity = sqrt(speed.vx * speed.vx + speed.vy * speed.vy + speed.vz * speed.vz);
+    drone.setVelocity(totalVelocity);
+
+    Acceleration acc = drone.getAccelerationInAxes();
+    acc.az = az;
+    drone.setAccelerationInAxes(acc);
+    float totalAcceleration = sqrt(acc.ax * acc.ax + acc.ay * acc.ay + acc.az * acc.az);
+    drone.setAcceleration(totalAcceleration);
 }
 
-void moveForward(Drone drone, float durationSeconds, float pitchAngleDegrees, float dt)
+void wait(float seconds) {
+    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(seconds * 1000)));
+}
+
+
+// פונקציה לעדכון גובה על פי כוח הרמה, משקל ותנגודת האוויר
+void takeoff(Drone& drone, float dt)
 {
-    // שמירה על הגובה ההתחלתי
-    float targetAltitude = drone.getDronePos().z;
-
-    // הטיית הרחפן קדימה
-    drone.setPitch(pitchAngleDegrees);
-
-    float elapsedTime = 0.0f;
-
-    while (elapsedTime < durationSeconds)
-    {
-        // חישוב צפיפות אוויר אם יש צורך
-        calculateAirDensity(drone);
-
-		updateForwardMotion(drone, dt); 
-
+    startMotorsForTakeoff(drone, drone.getHoverSpeed());
+    // סימולציה של המראה
+    while (drone.getDronePos().z < drone.getTargetAltitude())
+    {       
+        calculateAirDensity(drone); // חישוב צפיפות האוויר
+        AdjustEngineSpeed(drone); // הגברת מהירות המנועים
+        UpdateFollowingProgress(drone, dt);  // עדכון כל 0.1 מילישניות
         wait(dt);
-        elapsedTime += dt;
+    }
+    
+}
+
+
+//void decreaseMotorSpeed(Drone drone)
+//{
+//    // הפחתת מהירות המנועים בהדרגה
+//	Motor motor1 = drone.getMotor1();
+//    motor1.speed = max(motor1.speed - 5.0f, 0.0f); // הפחתת המהירות ב-5 כל פעם
+//    drone.setMotor1(motor1);
+//    Motor motor2 = drone.getMotor2();
+//	motor2.speed = max(motor2.speed - 5.0f, 0.0f); // הפחתת המהירות ב-5 כל פעם
+//	drone.setMotor2(motor2);
+//	Motor motor3 = drone.getMotor3();
+//    motor3.speed = max(motor3.speed - 5.0f, 0.0f);
+//    drone.setMotor3(motor3);
+//	Motor motor4 = drone.getMotor4();
+//    motor4.speed = max(motor4.speed - 5.0f, 0.0f);
+//    drone.setMotor4(motor4);
+//}
+//
+//
+//void land(Drone drone)
+//{
+//    // סימולציה של נחיתה
+//    while (drone.getDronePos().z > 0.1)
+//    {
+//        drone.setRpm(drone.getRpm() - 10);// ככל שהרחפן גבוה יותר, מפחיתים את RPM מעט
+//        decreaseMotorSpeed(drone); // הפחתת מהירות המנועים
+//        calculateAirDensity(drone); // חישוב צפיפות האוויר
+//        updateAltitude(drone, 1); // עדכון גובה כל 1 שניה
+//    }
+//    startMotorsOrStopMotors(drone, false, 0);
+//    drone.setVelocity(0);
+//    drone.setRpm(0);
+//    Point point = drone.getDronePos();
+//    point.z = 0;
+//    drone.setDronePos(point);
+//}
+//
+//
+//float hover(Drone drone)
+//{
+//    startMotorsOrStopMotors(drone, true, 0);
+//
+//    drone.setRpm(sqrt(drone.getMass() * g / drone.getC_t()));
+//    float hoverAltitude = drone.getDronePos().z;
+//
+//    while (abs(drone.getDronePos().z - hoverAltitude) > 0.1 || abs(drone.getSpeedInAxes().vz) > 0.1)
+//    {
+//        calculateAirDensity(drone);      // עדכון צפיפות האוויר
+//        updateAltitude(drone, 0.1);        // עדכון פיזיקלי של הגובה והמהירות
+//
+//        // כיוונון RPM בהתאם לשינוי בגובה
+//        if (drone.getDronePos().z < hoverAltitude)
+//            drone.setRpm(drone.getRpm() + 5);
+//        else if (drone.getDronePos().z > hoverAltitude)
+//            drone.setRpm(drone.getRpm() - 5);
+//
+//        // Replace the problematic line with explicit usage of std::max and std::min  
+//        drone.setRpm(max(0.0f, min(drone.getRpm(), drone.getMaxRPM())));
+//    }
+//    return drone.getRpm();
+//}
+//
+//void setSpeed(Drone drone, Velocity newVelocity) {
+//    drone.setSpeedInAxes(newVelocity);
+//    drone.setVelocity(sqrt(newVelocity.vx * newVelocity.vx +
+//        newVelocity.vy * newVelocity.vy +
+//        newVelocity.vz * newVelocity.vz));
+//}
+//
+//
+//void adjustMotorsToRotate(Drone drone, float currentYaw, float targetYaw) {
+//    float yawError = targetYaw - currentYaw;
+//
+//    float balancingSpeed = hover(drone);
+//
+//    Motor motor1 = drone.getMotor1();
+//    motor1.speed = balancingSpeed; // הפחתת המהירות ב-5 כל פעם
+//    drone.setMotor1(motor1);
+//    Motor motor2 = drone.getMotor2();
+//    motor2.speed = balancingSpeed; // הפחתת המהירות ב-5 כל פעם
+//    drone.setMotor2(motor2);
+//    Motor motor3 = drone.getMotor3();
+//    motor3.speed = balancingSpeed;
+//    drone.setMotor3(motor3);
+//    Motor motor4 = drone.getMotor4();
+//    motor4.speed = balancingSpeed;
+//    drone.setMotor4(motor4);
+//    // חישוב התאמה למהירות מנועים לפי הזווית
+//    float adjustment = yawError * 2.0f; // מקדם פשוט, ניתן לשנות
+//
+//    while (yawError > 180.0f) yawError -= 360.0f;
+//    while (yawError < -180.0f) yawError += 360.0f;
+//
+//    // הגבלת ערכים
+//    if (adjustment > drone.getMaxRPM() / 2) adjustment = drone.getMaxRPM() / 2;
+//    if (adjustment < -drone.getMaxRPM() / 2) adjustment = -drone.getMaxRPM() / 2;
+//
+//    if (yawError > 0) {
+//        // סיבוב ימינה
+//        motor1.speed -= adjustment;
+//        motor2.speed += adjustment;
+//        motor3.speed += adjustment;
+//        motor4.speed -= adjustment;
+//    }
+//    else {
+//        // סיבוב שמאלה
+//        motor1.speed += adjustment;
+//        motor2.speed -= adjustment;
+//        motor3.speed -= adjustment;
+//        motor4.speed += adjustment;
+//    }
+//
+//    // maxRPM הגבלת מהירות מנועים בין 0 ל־ 
+//    Motor* motors[] = { &motor1, &motor2, &motor3, &motor4 };
+//    for (int i = 0; i < 4; i++) {
+//        if (motors[i]->speed > drone.getMaxRPM()) motors[i]->speed = drone.getMaxRPM();
+//        if (motors[i]->speed < 0) motors[i]->speed = 0;
+//    }
+//}
+//
+//
+//void updateOrientation(Drone drone, float dt)
+//{
+//    float clockwiseThrust = drone.getMotor1().speed + drone.getMotor2().speed;
+//    float counterClockwiseThrust = drone.getMotor3().speed + drone.getMotor4().speed;
+//
+//    // חשב את מהירות הסיבוב לפי ההפרש
+//    drone.setYawRate(counterClockwiseThrust - clockwiseThrust * drone.getYawRate());
+//
+//    // עדכן את הזווית (בהנחה שהפונקציה קורית כל 0.01 שניות)
+//    drone.setYaw(drone.getYaw() + drone.getYawRate() * dt);
+//
+//    // דאג להשאיר את הזווית בתחום [0, 360)
+//    if (drone.getYaw() >= 360.0f) drone.setYaw(drone.getYaw() - 360.0f);
+//    if (drone.getYaw() < 0.0f) drone.setYaw(drone.getYaw() + 360.0f);
+//}
+//
+//
+
+//
+//
+//void rotate(Drone drone, float deltaYawDegrees, float dt)
+//{
+//    // חישוב זווית היעד
+//    float targetYaw = drone.getYaw() + deltaYawDegrees;
+//
+//    // לולאה לסיבוב עד להגעה לזווית היעד
+//    while (abs(drone.getYaw() - targetYaw) > 0.5f)
+//    {
+//        // סובב לפי כיוון (ימינה/שמאלה)
+//        adjustMotorsToRotate(drone, deltaYawDegrees, drone.getYaw());
+//
+//        // עדכון מצב הרחפן
+//        updateOrientation(drone, dt);
+//
+//        // הדמיית זמן
+//        wait(0.01f);
+//    }
+//}
+//
+//void updateForwardMotion(Drone drone, float deltaTime)
+//{
+//    //  חישוב thrust כולל
+//    float thrust = drone.getC_t() * pow(drone.getRpm(), 2);
+//
+//    //  זוויות
+//    float pitch = drone.getPitch(); // ברדיאנים
+//    float yaw = drone.getYaw();     // ברדיאנים
+//
+//    //  כוח thrust קדימה לפי pitch
+//    float forwardThrust = thrust * sin(pitch);
+//
+//    //  תרגום ל־X ו־Y לפי yaw (מערכת גלובלית)
+//    float fx = forwardThrust * cos(yaw); // רכיב thrust בציר X
+//    float fy = forwardThrust * sin(yaw); // רכיב thrust בציר Y
+//
+//    //  חישוב גרר בציר X ו־Y
+//    Velocity speed = drone.getSpeedInAxes();
+//    float dragX = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vx * speed.vx;
+//    float dragY = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * speed.vy * speed.vy;
+//
+//    // כיוון הגרר הפוך לכיוון התנועה
+//    dragX *= (speed.vx > 0) ? -1 : 1;
+//    dragY *= (speed.vy > 0) ? -1 : 1;
+//
+//    //  כוח נטו
+//    float netFx = fx + dragX;
+//    float netFy = fy + dragY;
+//
+//    //  חישוב תאוצה
+//    Acceleration acceleration = drone.getAccelerationInAxes();
+//    acceleration.ax = netFx / drone.getMass();
+//    acceleration.ay = netFy / drone.getMass();
+//    drone.setAccelerationInAxes(acceleration);
+//
+//    //  עדכון מהירות
+//    speed.vx += acceleration.ax * deltaTime;
+//    speed.vy += acceleration.ay * deltaTime;
+//    drone.setSpeedInAxes(speed);
+//
+//    //  עדכון מיקום
+//    Point pos = drone.getDronePos();
+//    pos.x += speed.vx * deltaTime;
+//    pos.y += speed.vy * deltaTime;
+//    drone.setDronePos(pos);
+//
+//    //  עדכון כוללים
+//    float vTotal = sqrt(speed.vx * speed.vx + speed.vy * speed.vy + speed.vz * speed.vz);
+//    float aTotal = sqrt(acceleration.ax * acceleration.ax + acceleration.ay * acceleration.ay + acceleration.az * acceleration.az);
+//    drone.setVelocity(vTotal);
+//    drone.setAcceleration(aTotal);
+
+
+
+void startForwardMotion(Drone& drone, bool d, float pitch, float engineSpeed)
+{
+    drone.setMotor1(Motor(true, engineSpeed - pitch, -1));//סיבוב שמאל
+    drone.setMotor2(Motor(true, engineSpeed - pitch, 1));//סיבוב ימין
+    drone.setMotor3(Motor(true, engineSpeed + pitch, -1));
+    drone.setMotor4(Motor(true, engineSpeed + pitch, 1));
+}
+
+
+float computePitchAngle(Drone& drone, float drag_force) {
+    float value = ( drone.getAccelerationInAxes().ax + drag_force / drone.getMass()) / g;
+    float pitch_radians = atan(value);
+    float pitch_degrees = pitch_radians * 180.0 / M_PI;
+    return pitch_radians; 
+}
+
+
+float computeThrust(Drone& drone, float motorRPM) {
+    float omega = motorRPM * 2 * M_PI / 60.0; // הפיכת RPM למהירות זוויתית (רדי/שניה)
+    return drone.getC_t() * drone.getRho() * drone.getA() * omega * omega;
+}
+
+
+void updateAltitude(Drone& drone, float dt)
+{
+    float motorRPM[4] = {drone.getMotor1().speed, drone.getMotor2().speed, drone.getMotor3().speed, drone.getMotor4().speed};
+
+    float totalThrust = 0.0f;
+
+    for (int i = 0; i < 4; ++i) {
+        float thrust = computeThrust(drone, motorRPM[i]);
+        totalThrust += thrust;
     }
 
-    // החזרת pitch ל-0 כדי לעצור את ההתקדמות
+    float weight = drone.getMass() * g;
+
+    // חישוב תאוצה בציר Z (עלייה/ירידה)
+    float pitch = drone.getPitch();
+    float yaw = drone.getYaw(); // זווית סיבוב הרחפן
+
+    float netForceZ = totalThrust * cos(pitch) - weight;
+    float accelerationZ = netForceZ / drone.getMass();
+
+    // חישוב תאוצה קדימה (בצירי הגוף)
+    float netForceForward = totalThrust * sin(pitch);
+    float accelerationForward = netForceForward / drone.getMass();
+
+    // מהירויות בצירי הגוף
+    float newVelocityForward = drone.getSpeedInAxes().vx + accelerationForward * dt;
+    float newVelocityZ = drone.getSpeedInAxes().vz + accelerationZ * dt;
+
+    // תרגום מהירות קדימה לצירי העולם (X ו־Y)
+    float velocityX_world = newVelocityForward * cos(yaw);
+    float velocityY_world = newVelocityForward * sin(yaw);
+
+    // עדכון מיקום לפי צירי העולם
+    Point currentPos = drone.getDronePos();
+    currentPos.x += velocityX_world * dt;
+    currentPos.y += velocityY_world * dt;
+    currentPos.z += newVelocityZ * dt;
+
+    // עדכון הרחפן
+    Velocity newVelocityInAxes = { newVelocityForward, drone.getSpeedInAxes().vy, newVelocityZ };
+    drone.setSpeedInAxes(newVelocityInAxes);
+    drone.setDronePos(currentPos);
+}
+
+void moveForward(Drone& drone, Point targetPosition, float stopThreshold, float dt)
+{
+    while (true)
+    {
+        float distanceToTarget = haversine(drone.getDronePos().x, drone.getDronePos().y, targetPosition.x, targetPosition.y);
+
+        if (distanceToTarget <= stopThreshold){
+            // עדכון מיקום הרחפן לנקודת היעד
+            drone.setDronePos(targetPosition);
+            break;
+        }
+
+        calculateAirDensity(drone);
+
+        float currentVelocity = drone.getVelocity();
+
+        // האטה מדורגת ככל שמתקרבים ליעד
+        float slowdownFactor = min(1.0f, distanceToTarget / 5.0f); // מתחיל להאט ממרחק 5 מטר
+        float adjustedHoverSpeed = drone.getHoverSpeed() * slowdownFactor;
+
+        // חישוב גרר לפי המהירות הנוכחית
+        float drag = 0.5 * drone.getC_d() * drone.getA() * drone.getRho() * pow(currentVelocity, 2);
+
+        float pitch = computePitchAngle(drone, drag);
+        drone.setPitch(pitch);
+        startForwardMotion(drone, true, pitch, adjustedHoverSpeed);
+
+        updateAltitude(drone, dt);
+
+        wait(dt);
+    }
+
     drone.setPitch(0);
 }

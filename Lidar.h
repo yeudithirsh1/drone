@@ -8,7 +8,7 @@
 using namespace std;
 
 
-class Lidar : Sensors
+class LIDAR : Sensors
 {
   private:
 	 vector<Point> currentScan;      // סריקה נוכחית
@@ -19,14 +19,13 @@ class Lidar : Sensors
 	 float distance;
 
   public:
-	    // Constructor
-	    Lidar();
-	
-	    // Getters
-	    vector<Point> getCurrentScan();
-	    vector<Point> getPreviousScan();
-	    Point getLidarLocation();
-	    ICP_OUT getIcpTransformation();
+	   // Constructor
+	   LIDAR();
+	   // Getters
+	   vector<Point> getCurrentScan();
+	   vector<Point> getPreviousScan();
+	   Point getLidarLocation();
+	   ICP_OUT getIcpTransformation();
        // Simple placeholder for ICP-like calculation
 	   void loadPointCloudFromFile(Drone drone, const string& filePath);
   	   void mergePointClouds(Drone drone, vector<Point>& clouds);

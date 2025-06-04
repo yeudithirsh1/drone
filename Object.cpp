@@ -11,6 +11,7 @@
 #include "PointInSpace.h"
 #include "KDTree.h"
 #include "TreeAVL.cpp"
+#include "DroneFeatures.h"
 
 using namespace Eigen;
 using namespace std;
@@ -449,33 +450,4 @@ bool checkTreeContainsAnotherTree1(Node*& rootA, Node* rootB) {
         }
     }
     return true;
-}
-
-
-
-
-// פונקציה שבודקת אם יש נקודות מעל הרחפן בתיבה קבועה, ושומרת את הנקודה הכי שמאלית
-bool findLeftmostPointAbove(const vector<Point>& cloud, const Point& dronePos,
-    float width, float length, float height,
-    Point& leftmostPointOut) {
-    bool found = false;
-    float minX = std::numeric_limits<float>::max();
-
-    for (const auto& p : cloud) {
-        float dx = p.x - dronePos.x;
-        float dy = p.y - dronePos.y;
-        float dz = p.z - dronePos.z;
-
-        if (fabs(dx) <= length / 2 &&
-            fabs(dy) <= width / 2 &&
-            dz >= 0 && dz <= height) {
-
-            if (p.x < minX) {
-                minX = p.x;
-                leftmostPointOut = p;
-                found = true;
-            }
-        }
-    }
-    return found;
 }

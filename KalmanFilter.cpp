@@ -26,7 +26,7 @@ void KalmanFilter::init(float dt) {
     R_imu = Eigen::Matrix<float, 7, 7>::Identity() * 0.5f;
 }
 
-void KalmanFilter::predict(float dt, const Eigen::Vector3f& u) {
+void KalmanFilter::predict(float dt, const Eigen::Vector3f& u, float pitch) {
     F.setIdentity();
     for (int i = 0; i < 3; ++i) {
         F(i, i + 3) = dt;               // מיקום ← מהירות
@@ -42,6 +42,8 @@ void KalmanFilter::predict(float dt, const Eigen::Vector3f& u) {
 
     x = F * x + B * u;
     P = F * P * F.transpose() + Q;
+    x(11) = pitch;
+
 }
 
 void KalmanFilter::updateGPS(const Eigen::Matrix<float, 3, 1>& position) {
