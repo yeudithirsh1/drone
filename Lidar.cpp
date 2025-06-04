@@ -1,4 +1,4 @@
-#include "Lidar.h"
+#include "LIDAR.h"
 #include <cmath>
 #include <pcl/point_types.h>
 #include <iostream>
@@ -14,29 +14,29 @@
 using namespace std;
 using namespace Eigen;
 
-Lidar::Lidar() {}
+LIDAR::LIDAR() {}
 
-vector<Point> Lidar::getCurrentScan()
+vector<Point> LIDAR::getCurrentScan()
 {
     return currentScan;
 }
 
-vector<Point> Lidar::getPreviousScan()
+vector<Point> LIDAR::getPreviousScan()
 {
     return previousScan;
 }
 
-Point Lidar::getLidarLocation()
+Point LIDAR::getLidarLocation()
 {
 	return lidarLocation;
 }
 
-ICP_OUT Lidar::getIcpTransformation()
+ICP_OUT LIDAR::getIcpTransformation()
 {
     return icpTransformation;
 }
 
-void Lidar::loadPointCloudFromFile(Drone drone, const string& filePath) {
+void LIDAR::loadPointCloudFromFile(Drone drone, const string& filePath) {
     vector<Point> cloud;
 
     ifstream file(filePath);
@@ -59,7 +59,7 @@ void Lidar::loadPointCloudFromFile(Drone drone, const string& filePath) {
 }
 
 
-void Lidar::mergePointClouds(Drone drone, vector<Point>& clouds) {
+void LIDAR::mergePointClouds(Drone drone, vector<Point>& clouds) {
 
     // тглеп currentScan
     currentScan = clouds;
@@ -83,7 +83,7 @@ void Lidar::mergePointClouds(Drone drone, vector<Point>& clouds) {
 	locationFromLidarMeasurement(drone, icpTransformation.trans);
 }
 
-void Lidar::locationFromLidarMeasurement(Drone drone, Matrix4f& icpTransformation)
+void LIDAR::locationFromLidarMeasurement(Drone drone, Matrix4f& icpTransformation)
 {
 	Vector4f pos = {
 		drone.getDronePos().x,
