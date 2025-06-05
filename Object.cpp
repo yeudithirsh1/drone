@@ -277,7 +277,7 @@ void analyzeDroneTurnsAndHull(const Point& startPos,
 
 // Normalize a vector
 Point2f normalize(const Point2f& v) {
-    float len = std::sqrt(v.x * v.x + v.y * v.y);
+    float len = sqrt(v.x * v.x + v.y * v.y);
     if (len == 0) return { 0, 0 };
     return { static_cast<float> (v.x / len),static_cast<float> (v.y / len) };
 }

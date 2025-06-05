@@ -2,13 +2,14 @@
 #include <cmath>
 #include <pcl/point_types.h>
 #include <iostream>
+#include <mutex>
 #include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
 #include "ICP.h"
 #include "DroneFeatures.h"
-
+#include "KalmanFilter.h"
 
 
 using namespace std;
@@ -18,7 +19,10 @@ LIDAR::LIDAR() {}
 
 vector<Point> LIDAR::getCurrentScan()
 {
-    return currentScan;
+    {
+        lock_guard<mutex> lock(currentScanMutex);
+        return currentScan;
+    }
 }
 
 vector<Point> LIDAR::getPreviousScan()
@@ -26,7 +30,7 @@ vector<Point> LIDAR::getPreviousScan()
     return previousScan;
 }
 
-Point LIDAR::getLidarLocation()
+VectorXf LIDAR::getLidarLocation()
 {
 	return lidarLocation;
 }
@@ -36,30 +40,49 @@ ICP_OUT LIDAR::getIcpTransformation()
     return icpTransformation;
 }
 
-void LIDAR::loadPointCloudFromFile(Drone drone, const string& filePath) {
-    vector<Point> cloud;
-
-    ifstream file(filePath);
+void LIDAR::updateLidarReadingsFromFile(Drone& drone, mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanFilter)
+{
+    ifstream file("src/LidarPoints.txt");
     if (!file.is_open()) {
-        cerr << "Error opening file: " << filePath << endl;
+        cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/LidarPoints.txt" << std::endl;
+        return;
     }
 
     string line;
-    while (getline(file, line)) {
-        istringstream iss(line);
-        Point p;
-        if (iss >> p.x >> p.y >> p.z) {
-            cloud.push_back(p);
+
+    while (true)
+    {
+        {
+            lock_guard<mutex> lock(mutexReachedDestination);
+            if (reachedDestination) {
+                break;
+            }
         }
-        else {
-            cerr << "Invalid line in file: " << line << endl;
+        vector<Point> cloud;
+        while (getline(file, line))
+        {
+            istringstream iss(line);
+            Point point;
+            iss >> point.x >> point.y >> point.z;
+            cloud.push_back(point);
         }
+        {
+            lock_guard<mutex> lock(currentScanMutex); 
+            previousScan = currentScan;
+            currentScan = cloud;
+
+        }
+        // עיבוד הסריקה הנוכחית
+        this_thread::sleep_for(chrono::milliseconds(100)); // עדכון  פעמים בשנייה
+        mergePointClouds(drone, cloud);
+        kalmanFilter.updateLidar(lidarLocation);
     }
-    mergePointClouds(drone, cloud);
+
+    file.close();
 }
 
 
-void LIDAR::mergePointClouds(Drone drone, vector<Point>& clouds) {
+void LIDAR::mergePointClouds(Drone& drone, vector<Point>& clouds) {
 
     // עדכון currentScan
     currentScan = clouds;
@@ -74,7 +97,7 @@ void LIDAR::mergePointClouds(Drone drone, vector<Point>& clouds) {
 
     // המרה גם ל־ previousScan
     MatrixXf previousMat(previousScan.size(), 3);
-    for (size_t i = 0; i < previousScan.size(); ++i) {
+    for (size_t i = 0; i < previousScan.size(); i++) {
         previousMat(i, 0) = previousScan[i].x;
         previousMat(i, 1) = previousScan[i].y;
         previousMat(i, 2) = previousScan[i].z;
@@ -83,7 +106,7 @@ void LIDAR::mergePointClouds(Drone drone, vector<Point>& clouds) {
 	locationFromLidarMeasurement(drone, icpTransformation.trans);
 }
 
-void LIDAR::locationFromLidarMeasurement(Drone drone, Matrix4f& icpTransformation)
+void LIDAR::locationFromLidarMeasurement(Drone& drone, Matrix4f& icpTransformation)
 {
 	Vector4f pos = {
 		drone.getDronePos().x,
@@ -92,9 +115,5 @@ void LIDAR::locationFromLidarMeasurement(Drone drone, Matrix4f& icpTransformatio
 		1.0f
 	};
 	Vector4f transformedPos = icpTransformation * pos;
-	lidarLocation = {
-		transformedPos[0],
-		transformedPos[1],
-		transformedPos[2]
-	};
+	lidarLocation  << transformedPos[0], transformedPos[1], transformedPos[2];
 }

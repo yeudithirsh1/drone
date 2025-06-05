@@ -6,31 +6,46 @@
 #include <iostream>  
 #include <thread>  
 #include <chrono>
+#include <mutex>
 #include "DroneFeatures.h"
+#include "KalmanFilter.h"
 
+using namespace std;
 
-using namespace std;  
 IMU::IMU()
     : Sensors(0.0f, chrono::high_resolution_clock::now()), // קריאה לבנאי של Sensors
-    acceleration(0.0f, 0.0f, 0.01f)
+    acceleration(0.0f, 0.0f, 0.01f){}
+
+
+void IMU::updateIMUReadingsFromFile(mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanfilter)
 {
+    ifstream file("src/IMU.txt"); // Open the text file for reading  
+    if (!file.is_open()) {
+        cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/IMU.txt" << endl;
+        return;
+    }
+
+    string line;
+    file.seekg(0, ios::end); // להתחיל מהסוף
+
+    while (true)
+    {
+        {
+          lock_guard<mutex> lock(mutexReachedDestination);
+          if (reachedDestination) {
+              break;
+          }
+        }
+        getline(file, line);
+        istringstream iss(line);
+        iss >> acceleration.ax >> acceleration.ay >> acceleration.az >> yawRate >> pitchRate; // Ensure valid input extraction 
+        Vector3f accelerationVector;
+        accelerationVector << acceleration.ax, acceleration.ay, acceleration.az;
+        float yaw_rate, pitch_rate;
+        yaw_rate = yawRate;
+        pitch_rate = pitchRate;
+        kalmanfilter.updateIMU(accelerationVector, yaw_rate, pitch_rate);
+        this_thread::sleep_for(chrono::milliseconds(50)); // 20 פעמים בשניה
+    }
+    file.close(); // Close the file  
 }
-
-void IMU::calculateSpeed()  
-{  
-   string line;
-
-   while (1)  
-   {  
-       ifstream inputFile("src/IMUsensor.txt"); // Open the text file for reading  
-       if (!inputFile.is_open())  
-       {  
-           cerr << "Error opening file." << endl;  
-       }  
-       getline(inputFile, line);
-       istringstream iss(line);  
-       iss >> acceleration.ax >> acceleration.ay >> acceleration.az >> yawRate; // Ensure valid input extraction  
-       inputFile.close(); // Close the file  
-       this_thread::sleep_for(chrono::seconds(1)); // Wait for 1 second between iterations  
-   }  
-} 

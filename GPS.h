@@ -1,5 +1,7 @@
+#include <mutex>
 #include "pointInSpace.h" 
 #include "Sensors.h"
+#include "KalmanFilter.h"
 
 class GPS : public Sensors
 {  
@@ -10,7 +12,6 @@ public:
 	GPS() : GPSLocation(0, 0, 0) {} 
 	Point getGPSLocation() const { return GPSLocation; }
 	void setGPSLocation(float x, float y, float z) { GPSLocation = Point(x, y, z); }
-	void UpdatePossion();
+	void updateGPSReadingsFromFile(mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanfilter);
 };
-    double deg2rad(double deg);
-	float haversine(float lat1, float lon1, float lat2, float lon2);
+

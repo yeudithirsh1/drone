@@ -78,6 +78,9 @@
     <ClCompile Include="processTakingOff.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="controllerPID.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KalmanFilter.h">
@@ -123,6 +126,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="processTakingOff.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="controllerPID.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

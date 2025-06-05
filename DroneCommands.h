@@ -1,8 +1,6 @@
 #pragma once
 #include "DroneFeatures.h"
 
-void startMotorsForTakeoff(Drone& drone, float hoverSpeed);
-void AdjustEngineSpeed(Drone& drone);
 void calculateAirDensity(Drone& drone);
 void UpdateFollowingProgress(Drone& drone, float dt);
 void wait(float seconds);

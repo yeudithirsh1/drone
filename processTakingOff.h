@@ -2,10 +2,9 @@
 #include "PointInSpace.h"
 #include <vector>
 #include "DroneFeatures.h"
+#include "LIDAR.h"
 using namespace std;
 
-vector<Point> loadPointCloudFromFile(const string& filePath);
-bool findLeftmostPointAbove(const vector<Point>& cloud, const
-	Point dronePos, const droneDimension droneDim, Point& leftmostPointOut);
-void processTakingOff(Drone& drone, const string& filePath);
+bool findHighestPointAbove(LIDAR& sensorLidar, const Point dronePos, const droneDimension droneDim, Point& leftmostPointOut);
+void processTakingOff(Drone& drone, LIDAR& sensorLidar);
 

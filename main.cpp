@@ -1,11 +1,14 @@
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <mutex>
 #include "Graph.h"
 #include "DroneFeatures.h"
 #include "processTakingOff.h"
 #include "GPS.h"
 #include "IMU.h"
+#include "LIDAR.h"
+#include "KalmanFilter.h"
 using namespace std;
 
 int main() 
@@ -37,16 +40,20 @@ int main()
     //מפה לסריקה
     vector<vector<Vertex>> graph = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
     Point point = { graph[0][0].x, graph[0][0].y, 0 };
-    Drone drone;
+    Drone drone;   
+    Sensors sensors;
     GPS sensorGPS;
-    IMU sensorIMU;
-
+    IMU sensorIMU; 
+    LIDAR sensorLidar;
+    KalmanFilter kalmanfilter;
+    kalmanfilter.init();
+    mutex mutexReachedDestination;
+    const string filePath = "fbb";
+    bool reachedDestination = false;
+    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
+    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
+    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
     drone.setDronePos(point);//מיקום הרחפן
-    string filePath = "fbb";
-    thread gpsThread(&GPS::UpdatePossion, &sensorGPS);
-
-    processTakingOff(drone, filePath);    //תהליך המראה
-
-
+    processTakingOff(drone, sensorLidar);//תהליך המראה
    return 0;
 }
