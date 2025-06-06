@@ -2,6 +2,8 @@
 #include "pointInSpace.h" // כולל את הקובץ pointSpace.h  
 #include <vector> // Include the vector header for std::vector  
 #include <Eigen/Dense> // Include Eigen for Vector3  
+#include <shared_mutex>
+using namespace std;
 using std::vector; // Use the std namespace for vector  
 using Eigen::Vector3f; // Use Eigen's Vector3f for 3D vector representation  
 
@@ -55,21 +57,30 @@ private:
   const float C_t = 0.1f; 
   const float hoverSpeed = sqrt(mass * g / C_t);
   float rpm;  
-  float rho;  //צפיפות האוויר
+  float rho;  //צפיפות האוויר 
+  shared_mutex velosityMutex;
   float velocity;  
-  float acceleration;  
-  float yawRate = 0; // מהירות סיבוב סביב ציר האנכי, ביחידות rad/s
+  shared_mutex accelerationMutex;
+  float acceleration;   
+  shared_mutex yawRateMutex;
+  float yawRate = 0; // מהירות סיבוב סביב ציר האנכי, ביחידות rad/s  
+  shared_mutex pitchRateMutex;
   float pitchRate = 0; // מהירות סיבוב סביב ציר האופקי, ביחידות rad/s
+  shared_mutex yawMutex;
   float yaw;
+  shared_mutex pitchMutex; 
   float pitch;
   Motor motor1; // קדמי שמאל  
   Motor motor2; // קדמי ימין  
   Motor motor3; // אחורי שמאל  
   Motor motor4; // אחורי ימין  
-  droneDimension droneDim;  
-  Point dronePos;  
-  Velocity SpeedInAxes;  
-  Acceleration AccelerationInAxes;  
+  droneDimension droneDim; 
+  shared_mutex dronePosMutex;
+  Point dronePos; 
+  shared_mutex speedInAxesMutex;
+  Velocity speedInAxes; 
+  shared_mutex accelerationInAxesMutex;
+  Acceleration accelerationInAxes;  
 public:  
   Drone(); // בנאי ברירת מחדל  
   int getMaxRPM();  
@@ -83,15 +94,15 @@ public:
   float getRpm();  
   void setRpm(float rpm);  
   float getRho();  
-  void setRho(float rho);  
+  void setRho(float rho); 
   float getVelocity();  
   void setVelocity(float velocity);  
   float getAcceleration();  
-  void setAcceleration(float acceleration);  
+  void setAcceleration(float acceleration); 
   float getYawRate();  
-  void setYawRate(float yawRate);  
+  void setYawRate(float yawRate); 
   float getYaw(); 
-  void setYaw(float yow);  
+  void setYaw(float yow); 
   float getPitch();
   void setPitch(float pitch);
   float getPitchRate();

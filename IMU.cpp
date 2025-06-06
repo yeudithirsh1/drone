@@ -6,9 +6,10 @@
 #include <iostream>  
 #include <thread>  
 #include <chrono>
-#include <mutex>
 #include "DroneFeatures.h"
 #include "KalmanFilter.h"
+#include "Global.h"
+#include <shared_mutex>
 
 using namespace std;
 
@@ -16,8 +17,7 @@ IMU::IMU()
     : Sensors(0.0f, chrono::high_resolution_clock::now()), // קריאה לבנאי של Sensors
     acceleration(0.0f, 0.0f, 0.01f){}
 
-
-void IMU::updateIMUReadingsFromFile(mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanfilter)
+void IMU::updateIMUReadingsFromFile(KalmanFilter& kalmanfilter)
 {
     ifstream file("src/IMU.txt"); // Open the text file for reading  
     if (!file.is_open()) {
@@ -31,10 +31,10 @@ void IMU::updateIMUReadingsFromFile(mutex& mutexReachedDestination, bool reached
     while (true)
     {
         {
-          lock_guard<mutex> lock(mutexReachedDestination);
-          if (reachedDestination) {
+           shared_lock<shared_mutex> lock(mutexReachedDestination);
+           if (reachedDestination) {
               break;
-          }
+           }
         }
         getline(file, line);
         istringstream iss(line);

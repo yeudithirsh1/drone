@@ -2,6 +2,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include <shared_mutex>
 
 using namespace std;
 Drone::Drone() {}
@@ -55,50 +56,62 @@ void Drone::setRho(float rho)
 }
 float Drone::getVelocity()
 {
-	return velocity;
+	shared_lock<shared_mutex> lock(velosityMutex);
+    return velocity;
 }
 void Drone::setVelocity(float velocity)
 {
+	unique_lock<shared_mutex> lock(velosityMutex);
 	this->velocity = velocity;
 }
 float Drone::getAcceleration()
 {
+	shared_lock<shared_mutex> lock(accelerationMutex);
 	return acceleration;
 }
 void Drone::setAcceleration(float acceleration)
 {
+	unique_lock<shared_mutex> lock(accelerationMutex);
 	this->acceleration = acceleration;
 }
 float Drone::getYawRate()
 {
+	shared_lock<shared_mutex> lock(yawRateMutex);
 	return yawRate;
 }
 void Drone::setYawRate(float yawRate)
 {
+	unique_lock<shared_mutex> lock(yawRateMutex);
 	this->yawRate = yawRate;
 }
 float Drone::getPitchRate()
 {
+	shared_lock<shared_mutex> lock(pitchRateMutex);
 	return pitchRate;
 }
 void Drone::setPitchRate(float pitchRate)
 {
+	unique_lock<shared_mutex> lock(pitchRateMutex);
 	this->pitchRate = pitchRate;
 }
 float Drone::getYaw()
 {
+	shared_lock<shared_mutex> lock(yawMutex);
 	return yaw;
 }
 void Drone::setYaw(float yaw)
 {
+	unique_lock<shared_mutex> lock(yawMutex);
 	this->yaw = yaw;
 }
 float Drone::getPitch()
 {
+	shared_lock<shared_mutex> lock(pitchMutex);
 	return pitch;
 }
 void Drone::setPitch(float pitch)
 {
+	unique_lock<shared_mutex> lock(pitchMutex);
 	this->pitch = pitch;
 }
 Motor Drone::getMotor1()
@@ -143,28 +156,35 @@ void Drone::setDroneDim(droneDimension droneDim)
 }
 Point Drone::getDronePos()
 {
+	shared_lock<shared_mutex> lock(dronePosMutex);
 	return dronePos;
 }
 void Drone::setDronePos(Point dronePos)
 {
+	unique_lock<shared_mutex> lock(dronePosMutex);
 	this->dronePos = dronePos;
 }
 Velocity Drone::getSpeedInAxes()
 {
-	return SpeedInAxes;
+	shared_lock<shared_mutex> lock(speedInAxesMutex);
+	return speedInAxes;
 }
 void Drone::setSpeedInAxes(Velocity SpeedInAxes)
 {
-	this->SpeedInAxes = SpeedInAxes;
-}
-void Drone::setAccelerationInAxes(Acceleration AccelerationInAxes)
-{
-	this->AccelerationInAxes = AccelerationInAxes;
+	unique_lock<shared_mutex> lock(speedInAxesMutex);
+	this->speedInAxes = SpeedInAxes;
 }
 Acceleration Drone::getAccelerationInAxes()
 {
-	return AccelerationInAxes;
+	shared_lock<shared_mutex> lock(accelerationInAxesMutex);
+	return accelerationInAxes;
 }
+void Drone::setAccelerationInAxes(Acceleration accelerationInAxes)
+{
+	unique_lock<shared_mutex> lock(accelerationInAxesMutex);
+	this->accelerationInAxes = accelerationInAxes;
+}
+
 
 
 

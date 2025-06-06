@@ -12,6 +12,6 @@ public:
 	GPS() : GPSLocation(0, 0, 0) {} 
 	Point getGPSLocation() const { return GPSLocation; }
 	void setGPSLocation(float x, float y, float z) { GPSLocation = Point(x, y, z); }
-	void updateGPSReadingsFromFile(mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanfilter);
+	void updateGPSReadingsFromFile(KalmanFilter& kalmanfilter);
 };
 

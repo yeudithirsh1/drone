@@ -1,6 +1,7 @@
 #pragma once
 #include <Eigen/Dense>
-#include <mutex>
+#include <shared_mutex>
+#include "DroneFeatures.h"
 
 using namespace std;
 using namespace Eigen;
@@ -9,17 +10,22 @@ using namespace Eigen;
 class KalmanFilter {
 public:
     KalmanFilter();
-    void init();
-    void update(const VectorXf& z, const MatrixXf& H, const MatrixXf& R);
-    void predict(float dt, const Vector3f& u, float pitch);
+    void init(float initial_x, float initial_y, float initial_z);
+    void predictLoop(Drone& drone);
+    void predict(float dt, const Vector3f& u, float yaw, float pitch);
+    void externalInputUpdate(const Vector3f& new_u, float new_yaw, float new_pitch);
     void updateGPS(const Vector3f& position);
     void updateLidar(const VectorXf& position);
-    void updateIMU(const Vector3f& linear_accel, float yaw_rate, float pitch_rate);
-    Matrix<float, 13, 1> getState();
-
-
+    void updateIMU(const Vector3f& linear_accel, float yaw_rate, float pitch_rate);  
+    void update(const VectorXf& z, const MatrixXf& H, const MatrixXf& R);
+    void updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone);
 private:
-    mutex updateMutex;
+    shared_mutex updateMutex;
+    Vector3f latest_u = Vector3f(0.0f, 0.0f, 0.0f);
+    float latest_yaw = 0.0f;
+    float latest_pitch = 0.0f;
+    shared_mutex predictMutex;
+    shared_mutex stateMutex;
     // State: [x, y, z, vx, vy, vz, ax, ay, az, yaw, yaw_rate, pitch, pitch_rate]
     Matrix<float, 13, 1> x;
     Matrix<float, 13, 13> P;

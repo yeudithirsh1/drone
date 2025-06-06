@@ -4,11 +4,12 @@
 #include <mutex>
 #include "Graph.h"
 #include "DroneFeatures.h"
-#include "processTakingOff.h"
 #include "GPS.h"
 #include "IMU.h"
 #include "LIDAR.h"
 #include "KalmanFilter.h"
+#include "Global.h"
+#include "DroneCommands.h"
 using namespace std;
 
 int main() 
@@ -40,20 +41,32 @@ int main()
     //מפה לסריקה
     vector<vector<Vertex>> graph = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
     Point point = { graph[0][0].x, graph[0][0].y, 0 };
-    Drone drone;   
+    Drone drone;    
+    drone.setDronePos(point);//מיקום הרחפן
     Sensors sensors;
     GPS sensorGPS;
     IMU sensorIMU; 
     LIDAR sensorLidar;
     KalmanFilter kalmanfilter;
-    kalmanfilter.init();
-    mutex mutexReachedDestination;
+    kalmanfilter.init(point.x, point.y, point.z);
     const string filePath = "fbb";
-    bool reachedDestination = false;
-    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
-    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
-    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(mutexReachedDestination), reachedDestination, ref(kalmanfilter));
-    drone.setDronePos(point);//מיקום הרחפן
-    processTakingOff(drone, sensorLidar);//תהליך המראה
+    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(kalmanfilter));
+    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(kalmanfilter));
+    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(kalmanfilter));
+    thread predictThread(&KalmanFilter::predictLoop, &kalmanfilter);
+    thread state(&KalmanFilter::getState, &kalmanfilter, ref(drone));
+    takeoff(drone);
    return 0;
 }
+
+
+
+//Vector3f point1 = { firstPoint.x, firstPoint.y, firstPoint.z };
+//Vector3f point2 = { secondPoint->x, secondPoint->y, secondPoint->z };
+//Vector3f direction = (point1 - point2).normalized();
+//float yaw_current = drone.getYaw();
+//float yaw_target = atan2(direction.y(), direction.x());
+//float delta_yaw = normalizeAngle(yaw_target - yaw_current);
+//float pitch_current = drone.getPitch();
+//float pitch_target = atan2(direction.z(), sqrt(direction.x() * direction.x() + direction.y() * direction.y()));
+//float delta_pitch = normalizeAngle(pitch_target - pitch_current);

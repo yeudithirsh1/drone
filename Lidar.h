@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
 #include <utility> // בשביל std::pair
-#include <mutex>
+#include <shared_mutex>
 #include <Eigen/Dense>
 #include "KalmanFilter.h"
 #include "PointInSpace.h" // כולל את הקובץ PointInSpace.h
@@ -19,7 +19,7 @@ class LIDAR : Sensors
 	 VectorXf lidarLocation;            // תזוזה אחרונה שחושבה - מיקום חדש
 	 ICP_OUT icpTransformation; // אובייקט ICP לחישוב תזוזות
 	 float distance;
-	 mutex currentScanMutex;
+	 shared_mutex currentScanMutex;
   public:
 	   // Constructor
 	   LIDAR();
@@ -28,7 +28,7 @@ class LIDAR : Sensors
 	   vector<Point> getPreviousScan();
 	   VectorXf getLidarLocation();
 	   ICP_OUT getIcpTransformation();
-	   void updateLidarReadingsFromFile(Drone& drone, mutex& mutexReachedDestination, bool reachedDestination,  KalmanFilter& kalmanFilter);
+	   void updateLidarReadingsFromFile(Drone& drone, KalmanFilter& kalmanFilter);
 	   void mergePointClouds(Drone& drone, vector<Point>& clouds);
 	   void locationFromLidarMeasurement(Drone& drone, Matrix4f& icpTransformation);
 };

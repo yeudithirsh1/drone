@@ -8,6 +8,7 @@
 #include "controllerPID.h"
 
 using namespace std;
+using namespace std::chrono;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -71,15 +72,12 @@ void UpdateFollowingProgress(Drone& drone, float dt)
     Acceleration acc = drone.getAccelerationInAxes();
     acc.az = az;
     drone.setAccelerationInAxes(acc);
+
     float totalAcceleration = sqrt(acc.ax * acc.ax + acc.ay * acc.ay + acc.az * acc.az);
     drone.setAcceleration(totalAcceleration);
 }
 
-void wait(float seconds) {
-    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(seconds * 1000)));
-}
-
-void takeoff(Drone& drone, float dt)
+void takeoff(Drone& drone)
 {
     PID pid(2.0f, 0.5f, 0.3f); // מקדמים לדוגמה – צריך לכוון אותם לניסיון אמיתי
     startMotors(drone);
@@ -87,10 +85,14 @@ void takeoff(Drone& drone, float dt)
     float baseRpm = drone.getHoverSpeed(); // נקודת התחלה סבירה
     drone.setRpm(baseRpm);
 
-
+    auto previousTime = steady_clock::now();
 
     while (drone.getDronePos().z < drone.getTargetAltitude())
     {
+        auto currentTime = steady_clock::now();
+        float dt = duration<float>(currentTime - previousTime).count();
+        previousTime = currentTime;
+
         calculateAirDensity(drone);
 
         float error = drone.getTargetAltitude() - drone.getDronePos().z;
@@ -98,16 +100,16 @@ void takeoff(Drone& drone, float dt)
         float newRpm = baseRpm + correction;
 
         // הגבלת RPM לטווח סביר
-        newRpm = std::max(0.0f, std::min(newRpm, 2000.0f));
+        newRpm = max(0.0f, min(newRpm, 2000.0f));
 
         drone.setRpm(newRpm);
         updateThrustFromRPM(drone);
 
         UpdateFollowingProgress(drone, dt);
-        wait(dt);
+
+        this_thread::sleep_for(milliseconds(10)); // אפשרי לשנות אם רוצים קצב קבוע
     }
 }
-
 
 //void decreaseMotorSpeed(Drone drone)
 //{
@@ -388,6 +390,12 @@ void updateAltitude(Drone& drone, float dt)
     drone.setSpeedInAxes(newVelocityInAxes);
     drone.setDronePos(currentPos);
 }
+
+void wait(float seconds) {
+    this_thread::sleep_for(chrono::milliseconds(static_cast<int>(seconds * 1000)));
+}
+
+
 
 void moveForward(Drone& drone, Point targetPosition, float stopThreshold, float dt)
 {

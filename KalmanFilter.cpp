@@ -1,12 +1,22 @@
 ﻿#include "KalmanFilter.h"
+#include "Global.h"
+#include <shared_mutex>
+#include "DroneFeatures.h"
 
 using namespace Eigen;
+extern bool reachedDestination;
+extern shared_mutex mutexReachedDestination;
+
 
 KalmanFilter::KalmanFilter() {}
 
-void KalmanFilter::init() {
+void KalmanFilter::init(float initial_x, float initial_y, float initial_z) {
     x = Matrix<float, 13, 1>::Zero();
+    x(0) = initial_x;  // מיקום X
+    x(1) = initial_y;  // מיקום Y
+    x(2) = initial_z;  // מיקום Z
     P = Matrix<float, 13, 13>::Identity() * 1.0f;
+    P(9, 9) = 100.0f; // חוסר ודאות גדול ב־yaw
     F = Matrix<float, 13, 13>::Identity();
     B = Matrix<float, 13, 3>::Zero();
     Q = Matrix<float, 13, 13>::Identity() * 0.01f;
@@ -28,7 +38,7 @@ void KalmanFilter::init() {
     R_imu = Matrix<float, 7, 7>::Identity() * 0.5f;
 }
 
-void KalmanFilter::predict(float dt, const Vector3f& u, float pitch) {
+void KalmanFilter::predict(float dt, const Vector3f& u, float yaw, float pitch) {
     F.setIdentity();
     for (int i = 0; i < 3; ++i) {
         F(i, i + 3) = dt;               // מיקום ← מהירות
@@ -44,9 +54,54 @@ void KalmanFilter::predict(float dt, const Vector3f& u, float pitch) {
 
     x = F * x + B * u;
     P = F * P * F.transpose() + Q;
+    float new_yaw = x(9) + yaw;   
+    x(10) = (new_yaw - x(9)) / dt;  
+    x(9) = new_yaw;
     x(11) = pitch;
-
 }
+
+void KalmanFilter::predictLoop(Drone& drone) 
+{
+    auto last_time = chrono::steady_clock::now();
+    while (true) {
+        {
+            shared_lock<shared_mutex> lock(mutexReachedDestination);
+            if (reachedDestination) {
+                break;
+            }
+        }
+        Vector3f u;
+        float yaw;
+        float pitch;
+
+        {
+            shared_lock<shared_mutex> lock(predictMutex);
+            u = latest_u;
+            yaw = latest_yaw;
+            pitch = latest_pitch;
+        }
+
+        auto current_time = chrono::steady_clock::now();
+        float dt = chrono::duration<float>(current_time - last_time).count();
+        last_time = current_time;
+        predict(dt, u, yaw, pitch);
+        updatingDroneVariables(x, drone);
+        this_thread::sleep_for(chrono::milliseconds(100));
+    }
+}
+
+
+// פונקציה שמעדכנת קלט חדש
+void KalmanFilter::externalInputUpdate(const Vector3f& new_u, float new_yaw, float new_pitch) 
+{
+    {
+        unique_lock<shared_mutex> lock(predictMutex);
+        latest_u = new_u;
+        latest_yaw = new_yaw;
+        latest_pitch = new_pitch;
+    }
+}
+
 
 void KalmanFilter::updateGPS(const Vector3f& position) {
     update(position, H_gps, R_gps);
@@ -69,8 +124,7 @@ void KalmanFilter::updateIMU(const Vector3f& linear_accel, float yaw_rate, float
 void KalmanFilter::update(const VectorXf& z, const MatrixXf& H, const MatrixXf& R)
 {
     {
-        lock_guard<mutex> lock(updateMutex);
-
+        unique_lock<shared_mutex> lock(updateMutex);
         VectorXf y = z - H * x;
         MatrixXf S = H * P * H.transpose() + R;
         MatrixXf K = P * H.transpose() * S.inverse();
@@ -80,6 +134,20 @@ void KalmanFilter::update(const VectorXf& z, const MatrixXf& H, const MatrixXf& 
     }
 }
 
-Matrix<float, 13, 1> KalmanFilter::getState(){
-    return x;
+void KalmanFilter::updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone)
+{
+    Point pos = { x(0), x(1), x(2) };
+    drone.setDronePos(pos);
+    Velocity speed = { x(3), x(4), x(5) };
+    drone.setSpeedInAxes(speed);
+    Acceleration acc = { x(6), x(7), x(8) };
+    drone.setAccelerationInAxes(acc);
+    drone.setYaw(x(9));
+    drone.setYawRate(x(10));
+    drone.setPitch(x(11));
+    drone.setPitchRate(x(12)); 
+    float velocity = sqrt(drone.getSpeedInAxes().vx * drone.getSpeedInAxes().vx +
+        drone.getSpeedInAxes().vy * drone.getSpeedInAxes().vy +
+        drone.getSpeedInAxes().vz * drone.getSpeedInAxes().vz);
+    drone.setVelocity()
 }

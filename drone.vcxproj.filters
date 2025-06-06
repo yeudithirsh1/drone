@@ -75,10 +75,10 @@
     <ClCompile Include="YoloDecisionEngine.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="processTakingOff.cpp">
+    <ClCompile Include="controllerPID.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="controllerPID.cpp">
+    <ClCompile Include="Global.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -125,10 +125,10 @@
     <ClInclude Include="DroneCommands.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="processTakingOff.h">
+    <ClInclude Include="controllerPID.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="controllerPID.h">
+    <ClInclude Include="Global.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

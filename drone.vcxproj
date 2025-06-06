@@ -137,6 +137,7 @@
     <ClInclude Include="controllerPID.h" />
     <ClInclude Include="DroneCommands.h" />
     <ClInclude Include="DroneFeatures.h" />
+    <ClInclude Include="Global.h" />
     <ClInclude Include="GPSSoliders.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="IMU.h" />
@@ -146,7 +147,6 @@
     <ClInclude Include="KDTree.h" />
     <ClInclude Include="LIDAR.h" />
     <ClInclude Include="Object.h" />
-    <ClInclude Include="processTakingOff.h" />
     <ClInclude Include="Sensors.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="TreeAVL.cpp" />
@@ -155,6 +155,7 @@
     <ClCompile Include="controllerPID.cpp" />
     <ClCompile Include="DroneCommands.cpp" />
     <ClCompile Include="DroneFeatures.cpp" />
+    <ClCompile Include="Global.cpp" />
     <ClCompile Include="GPSSoliders.cpp" />
     <ClCompile Include="imageToGpsConverter.cpp" />
     <ClCompile Include="IMU.cpp" />
@@ -168,7 +169,6 @@
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PointInSpace.h" />
-    <ClCompile Include="processTakingOff.cpp" />
     <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="test.cpp" />

@@ -6,12 +6,13 @@
 #include <chrono>
 #include <Eigen/Dense>
 #include "KalmanFilter.h"
+#include "Global.h"
+#include <shared_mutex>
 
 using namespace std;
 using namespace Eigen;
 
-
-void GPS::updateGPSReadingsFromFile(mutex& mutexReachedDestination, bool reachedDestination, KalmanFilter& kalmanfilter)
+void GPS::updateGPSReadingsFromFile(KalmanFilter& kalmanfilter)
 {  
    ifstream inputFile("src/GPS.txt");
    if (!inputFile.is_open()) {
@@ -23,7 +24,7 @@ void GPS::updateGPSReadingsFromFile(mutex& mutexReachedDestination, bool reached
    while (true)
    {
        {
-           lock_guard<mutex> lock(mutexReachedDestination);
+           shared_lock<shared_mutex> lock(mutexReachedDestination);
            if (reachedDestination) {
                break;
            }
