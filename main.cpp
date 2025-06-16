@@ -10,7 +10,83 @@
 #include "KalmanFilter.h"
 #include "Global.h"
 #include "DroneCommands.h"
+#include "Object.h"
+#include "Soldiers.h"
 using namespace std;
+
+
+void mainNavigation(vector<vector<Vertex>> graph, Drone& drone, KalmanFilter& kalmanFilter, LIDAR& lidar) 
+{
+    Vertex* pointer = &graph[0][0];
+    while (pointer)
+    {
+        Vector3f startingPoint = { pointer->x, pointer->y, pointer->z };
+        Vector3f endPoint = { pointer->next->x, pointer->next->y, pointer->next->z };
+
+        rotate(drone, startingPoint, endPoint, kalmanFilter);
+
+        Point pointDeparture = { pointer->x, pointer->y, pointer->z };
+        Point pointDestination = { pointer->next->x, pointer->next->y, pointer->next->z };
+
+        moveForward(drone, pointDestination, 0.01f, kalmanFilter);
+       
+        if (getObstacleStatuse())
+        {
+            // שמירת מיקום ההתחלה לעקיפה
+            Point originalPos = drone.getDronePos();  
+            bool d = true;
+
+            // התחלת לולאת העקיפה
+            while (d)
+            {
+                // מציאת זווית פנויה
+                float Angle = findMostRightFreeGap(lidar.getCurrentScan(), drone, drone.getDroneDim());
+
+                // סיבוב לזווית פנויה
+                rotateYaw(drone, Angle, kalmanFilter);
+
+                float new_x = drone.getDronePos().x + drone.getDroneDim().length * cos(drone.getYaw());
+                float new_y = drone.getDronePos().x + drone.getDroneDim().length * sin(drone.getYaw());
+                Point nextPoint = { new_x, new_y, drone.getDronePos().z };
+                // תנועה קצרה קדימה בזווית החדשה
+                moveForward(drone, nextPoint, 0.01f, kalmanFilter);
+
+
+                // בדיקה האם חזרנו למסלול המקורי
+                Point currentPos = drone.getDronePos();
+                Point pointOnLine, returnPoint;
+                bool isOnLine = TheTwoPointsOnLine(pointDeparture, pointDestination, pointOnLine, returnPoint);
+
+                if (isOnLine){ 
+
+                    vector<Point> returnRoute = analyzeDroneTurnsAndHull(pointDeparture, pointDestination, pointOnLine, returnPoint);
+                    vector<Point> extendedForm = inflatePolygon(returnRoute, drone.getDroneDim().length + 0.01f);
+                    extendedForm.pop_back();
+                    
+                    // ניווט לפי המסלול המורחב שהורכב
+                    for (size_t i = 0; i < extendedForm.size() - 1; ++i)
+                    {
+                        Point p1 = extendedForm[i];
+                        Point p2 = extendedForm[i + 1];
+
+                        Vector3f start = { p1.x, p1.y, p1.z };
+                        Vector3f end = { p2.x, p2.y, p2.z };
+
+                        // סיבוב לעבר היעד הבא במסלול
+                        rotate(drone, start, end, kalmanFilter);
+
+                        // תנועה לנקודה הבאה
+                        moveForward(drone, p2, 0.01f, kalmanFilter);
+                    }
+
+                    // יציאה מהעקיפה
+                    d = false;
+                }
+            }
+        }
+        pointer = pointer->next;
+    }
+}
 
 int main() 
 {   
@@ -41,32 +117,22 @@ int main()
     //מפה לסריקה
     vector<vector<Vertex>> graph = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
     Point point = { graph[0][0].x, graph[0][0].y, 0 };
+    string path = "cdcd";
     Drone drone;    
     drone.setDronePos(point);//מיקום הרחפן
-    Sensors sensors;
     GPS sensorGPS;
     IMU sensorIMU; 
     LIDAR sensorLidar;
-    KalmanFilter kalmanfilter;
-    kalmanfilter.init(point.x, point.y, point.z);
-    const string filePath = "fbb";
-    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(kalmanfilter));
-    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(kalmanfilter));
-    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(kalmanfilter));
-    thread predictThread(&KalmanFilter::predictLoop, &kalmanfilter);
-    thread state(&KalmanFilter::getState, &kalmanfilter, ref(drone));
-    takeoff(drone);
+    KalmanFilter kalmanFilter;
+    kalmanFilter.init(point.x, point.y, point.z);
+    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(kalmanFilter));
+    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(kalmanFilter));
+    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(kalmanFilter));
+    thread predictThread(&KalmanFilter::predictLoop, &kalmanFilter, ref(drone));
+	startTrackingAllSoldiers(path);
+    takeoff(drone, kalmanFilter);
+    mainNavigation(graph, drone, kalmanFilter, sensorLidar);
+    land(drone, kalmanFilter);
    return 0;
 }
 
-
-
-//Vector3f point1 = { firstPoint.x, firstPoint.y, firstPoint.z };
-//Vector3f point2 = { secondPoint->x, secondPoint->y, secondPoint->z };
-//Vector3f direction = (point1 - point2).normalized();
-//float yaw_current = drone.getYaw();
-//float yaw_target = atan2(direction.y(), direction.x());
-//float delta_yaw = normalizeAngle(yaw_target - yaw_current);
-//float pitch_current = drone.getPitch();
-//float pitch_target = atan2(direction.z(), sqrt(direction.x() * direction.x() + direction.y() * direction.y()));
-//float delta_pitch = normalizeAngle(pitch_target - pitch_current);

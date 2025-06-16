@@ -38,26 +38,51 @@ void KalmanFilter::init(float initial_x, float initial_y, float initial_z) {
     R_imu = Matrix<float, 7, 7>::Identity() * 0.5f;
 }
 
-void KalmanFilter::predict(float dt, const Vector3f& u, float yaw, float pitch) {
+void KalmanFilter::predict(float dt, const VectorXf& VectorControl) {
     F.setIdentity();
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 3; i++) {
         F(i, i + 3) = dt;               // מיקום ← מהירות
         F(i, i + 6) = 0.5f * dt * dt;   // מיקום ← תאוצה
         F(i + 3, i + 6) = dt;           // מהירות ← תאוצה
     }
 
     B.setZero();
-    for (int i = 0; i < 3; ++i) {
-        B(i, i) = 0.5f * dt * dt;       // תאוצה משפיעה על מיקום
-        B(i + 3, i) = dt;               // תאוצה משפיעה על מהירות
+    for (int i = 0; i < 3; i++) {
+        B(i, i) = 0.5f * dt * dt;     // מיקום ← תאוצה
+        B(i + 3, i) = dt;             // מהירות ← תאוצה
     }
 
-    x = F * x + B * u;
-    P = F * P * F.transpose() + Q;
-    float new_yaw = x(9) + yaw;   
-    x(10) = (new_yaw - x(9)) / dt;  
-    x(9) = new_yaw;
-    x(11) = pitch;
+    // רכיבי סיבוב:
+    B(9, 3) = 0.5f * dt * dt;         // yaw ← תאוצה זוויתית
+    B(10, 3) = dt;                    // yawRate ← תאוצה זוויתית
+
+    B(11, 4) = 0.5f * dt * dt;        // pitch ← תאוצה זוויתית
+    B(12, 4) = dt;                    // pitchRate ← תאוצה זוויתית
+
+    x = F * x + B * VectorControl;    // חיזוי המצב הבא
+    P = F * P * F.transpose() + Q;    // עדכון חוסר הוודאות
+}
+
+void KalmanFilter::updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone)
+{
+    Point pos = { x(0), x(1), x(2) };
+    drone.setDronePos(pos);
+    Velocity speed = { x(3), x(4), x(5) };
+    drone.setSpeedInAxes(speed);
+    Acceleration acc = { x(6), x(7), x(8) };
+    drone.setAccelerationInAxes(acc);
+    drone.setYaw(x(9));
+    drone.setYawRate(x(10));
+    drone.setPitch(x(11));
+    drone.setPitchRate(x(12)); 
+    float velocity = sqrt(drone.getSpeedInAxes().vx * drone.getSpeedInAxes().vx +
+        drone.getSpeedInAxes().vy * drone.getSpeedInAxes().vy +
+        drone.getSpeedInAxes().vz * drone.getSpeedInAxes().vz);
+    drone.setVelocity(velocity);
+    float acceleration = sqrt(drone.getAccelerationInAxes().ax * drone.getAccelerationInAxes().ax +
+        drone.getAccelerationInAxes().ay * drone.getAccelerationInAxes().ay +
+		drone.getAccelerationInAxes().az * drone.getAccelerationInAxes().az);
+	drone.setAcceleration(acceleration);
 }
 
 void KalmanFilter::predictLoop(Drone& drone) 
@@ -70,21 +95,17 @@ void KalmanFilter::predictLoop(Drone& drone)
                 break;
             }
         }
-        Vector3f u;
-        float yaw;
-        float pitch;
+        VectorXf vectorControl;
 
         {
             shared_lock<shared_mutex> lock(predictMutex);
-            u = latest_u;
-            yaw = latest_yaw;
-            pitch = latest_pitch;
+            vectorControl = latestVectorControl;
         }
 
         auto current_time = chrono::steady_clock::now();
         float dt = chrono::duration<float>(current_time - last_time).count();
         last_time = current_time;
-        predict(dt, u, yaw, pitch);
+        predict(dt, vectorControl);
         updatingDroneVariables(x, drone);
         this_thread::sleep_for(chrono::milliseconds(100));
     }
@@ -92,13 +113,11 @@ void KalmanFilter::predictLoop(Drone& drone)
 
 
 // פונקציה שמעדכנת קלט חדש
-void KalmanFilter::externalInputUpdate(const Vector3f& new_u, float new_yaw, float new_pitch) 
+void KalmanFilter::externalInputUpdate(VectorXf& newVectorControl)
 {
     {
         unique_lock<shared_mutex> lock(predictMutex);
-        latest_u = new_u;
-        latest_yaw = new_yaw;
-        latest_pitch = new_pitch;
+        latestVectorControl = newVectorControl;
     }
 }
 
@@ -125,29 +144,13 @@ void KalmanFilter::update(const VectorXf& z, const MatrixXf& H, const MatrixXf& 
 {
     {
         unique_lock<shared_mutex> lock(updateMutex);
-        VectorXf y = z - H * x;
-        MatrixXf S = H * P * H.transpose() + R;
-        MatrixXf K = P * H.transpose() * S.inverse();
+		VectorXf y = z - H * x;//ההפש בין חיזוי המדידה לבין המדידה עצמה
+		MatrixXf S = H * P * H.transpose() + R;//החוסר ודאות של המדידה
+		MatrixXf K = P * H.transpose() * S.inverse();//מטריצת הגיינמן, קובעת כמה להעדיף את המדידה על פני החיזוי
 
-        x = x + K * y;
-        P = (MatrixXf::Identity(x.size(), x.size()) - K * H) * P;
+		x = x + K * y;//עדכון המצב הנוכחי של המערכת על סמך המדידה
+		P = (MatrixXf::Identity(x.size(), x.size()) - K * H) * P;//עדכון חוסר הוודאות של המערכת
     }
 }
 
-void KalmanFilter::updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone)
-{
-    Point pos = { x(0), x(1), x(2) };
-    drone.setDronePos(pos);
-    Velocity speed = { x(3), x(4), x(5) };
-    drone.setSpeedInAxes(speed);
-    Acceleration acc = { x(6), x(7), x(8) };
-    drone.setAccelerationInAxes(acc);
-    drone.setYaw(x(9));
-    drone.setYawRate(x(10));
-    drone.setPitch(x(11));
-    drone.setPitchRate(x(12)); 
-    float velocity = sqrt(drone.getSpeedInAxes().vx * drone.getSpeedInAxes().vx +
-        drone.getSpeedInAxes().vy * drone.getSpeedInAxes().vy +
-        drone.getSpeedInAxes().vz * drone.getSpeedInAxes().vz);
-    drone.setVelocity()
-}
+

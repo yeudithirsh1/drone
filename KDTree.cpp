@@ -9,8 +9,8 @@ using namespace std;
 
 KDTree::KDTree() : valid(false) {}
 
-KDTree::KDTree(vector<Point>& points, int depth) {
-    if (points.empty()) {
+KDTree::KDTree(vector<Point>& cloud, int depth) {
+    if (cloud.empty()) {
         valid = false;
         return;
     }
@@ -22,7 +22,7 @@ KDTree::KDTree(vector<Point>& points, int depth) {
         return a.z < b.z;
         };
 
-    vector<Point> sorted_points = points;
+    vector<Point> sorted_points = cloud;
     sort(sorted_points.begin(), sorted_points.end(), comp);
 
     int mid = sorted_points.size() / 2;

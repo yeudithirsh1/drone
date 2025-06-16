@@ -10,20 +10,14 @@
 #include <iostream>
 #include "PointInSpace.h"
 #include "KDTree.h"
-#include "TreeAVL.cpp"
 #include "DroneFeatures.h"
+#include "LIDAR.h"
+#include "TreeAVL.h"
 
 using namespace Eigen;
 using namespace std;
-const float Physical_height = 2.0f;
-const float Physical_width = 4.5f;
-const float Physical_depth = 3.2f;
-const float angleResDeg = 5.3f;
 
 vector<Point> listPoint = {};
-const double DEG_TO_RAD = M_PI / 180.0;
-const double RAD_TO_DEG = 180.0 / M_PI;
-
 
 //בדיקה האם נקודה נמצאת בימין המכשול או בשמאל
 int point_side_of_line(Point A, Point B, Point P)
@@ -32,91 +26,56 @@ int point_side_of_line(Point A, Point B, Point P)
     return cross;
 }
 
-void computeGreatCircleIntersection(
-    const Point& p1, const Point& p2,
-    const Point& p3, const Point& p4,
-    double& outLat, double& outLon)
+void Intersection_points(Point startPos, Point goalPos, Point dronePos, Point dronePrevPos, Point& point)
 {
-    auto toVec = [](double latDeg, double lonDeg) {
-        double lat = latDeg * DEG_TO_RAD;
-        double lon = lonDeg * DEG_TO_RAD;
-        return array<double, 3>{
-            cos(lat)* cos(lon),
-                cos(lat)* sin(lon),
-                sin(lat)};
-        };
-
-    auto dot = [](const array<double, 3>& a, const array<double, 3>& b) {
-        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-        };
-
-    auto cross = [](const array<double, 3>& a, const array<double, 3>& b) {
-        return array<double, 3>{
-            a[1] * b[2] - a[2] * b[1],
-                a[2] * b[0] - a[0] * b[2],
-                a[0] * b[1] - a[1] * b[0]};
-        };
-
-    auto normalize = [&](const array<double, 3>& v) {
-        double norm = sqrt(dot(v, v));
-        return array<double, 3>{v[0] / norm, v[1] / norm, v[2] / norm};
-        };
-
-    auto isOnArc = [&](const array<double, 3>& A, const array<double, 3>& B, const array<double, 3>& P) {
-        double angleAP = acos(dot(A, P));
-        double anglePB = acos(dot(P, B));
-        double angleAB = acos(dot(A, B));
-        return std::abs((angleAP + anglePB) - angleAB) < 1e-8;
-        };
-
-    auto A = toVec(p1.x, p1.y);
-    auto B = toVec(p2.x, p2.y);
-    auto C = toVec(p3.x, p3.y);
-    auto D = toVec(p4.x, p4.y);
-
-    auto n1 = normalize(cross(A, B));
-    auto n2 = normalize(cross(C, D));
-
-    auto inter1 = normalize(cross(n1, n2));
-    auto inter2 = array<double, 3>{ -inter1[0], -inter1[1], -inter1[2] };
-
-    array<double, 3> chosen;
-
-    if (isOnArc(A, B, inter1) && isOnArc(C, D, inter1)) {
-        chosen = inter1;
-    }
-    else if (isOnArc(A, B, inter2) && isOnArc(C, D, inter2)) {
-        chosen = inter2;
-        outLat = asin(chosen[2]) * RAD_TO_DEG;
-        outLon = atan2(chosen[1], chosen[0]) * RAD_TO_DEG;
-    }
+    Point currentPoint1 = dronePos;
+    Point currentPoint2 = dronePrevPos;
+    float m1 = (goalPos.y - startPos.y) / (goalPos.x - startPos.x);
+    float b1 = startPos.y - m1 * startPos.x;
+    float x1 = (startPos.y - b1) / m1;
+    float m2 = (currentPoint2.y - currentPoint1.y) / (currentPoint2.x - currentPoint1.x);
+    float b2 = currentPoint1.y - m2 * currentPoint1.x;
+    float x2 = (currentPoint1.y - b2) / m2;
+    float intersectionPointx = (b2 - b1) / (m1 - m2);
+    float intersectionPointy = m1 * intersectionPointx + b1;
+    Point intersectionPoint = { intersectionPointx, intersectionPointy, startPos.z };
+    point = intersectionPoint;
 }
 
+bool TheTwoPointsOnLine(Point droneStart,
+    Point droneTarget,
+    Point& pointOnLine,
+    Point& returnPoint)
+  {
+    // בדיקה שיש לפחות שתי נקודות ברשימה
+    if (listPoint.size() < 2)
+        return false;
 
-void TheTwoPointsOnLine(Point droneStart,
-Point droneTarget,
-Point dronePos,
-Point dronePrevPos,
-Point& pointOnLine,
-Point& returnPoint)
-{
-    double outLat, outLon;
-    if (point_side_of_line(droneStart, droneTarget, dronePos) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
-        || point_side_of_line(droneStart, droneTarget, dronePos) > 0 && point_side_of_line(droneStart, droneTarget, dronePos) < 0)
-         computeGreatCircleIntersection(droneStart, droneTarget, dronePos, dronePrevPos, outLon, outLat);
-    else if (point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) == 0
-        || point_side_of_line(droneStart, droneTarget, listPoint[listPoint.size() - 1]) < 0 && point_side_of_line(droneStart, droneTarget, dronePos) > 0)
-        computeGreatCircleIntersection(droneStart, droneTarget, dronePos, dronePrevPos, outLon, outLat);
+    Point lastPoint = listPoint[listPoint.size() - 1];
+    Point prevPoint = listPoint[listPoint.size() - 2];
+
+    int sideLast = point_side_of_line(droneStart, droneTarget, lastPoint);
+    int sidePrev = point_side_of_line(droneStart, droneTarget, prevPoint);
+
+    // בדיקת חיתוך בקו בין נקודות משני צידי הקו או כאשר אחת בדיוק על הקו
+    if ((sideLast > 0 && sidePrev <= 0) || (sideLast < 0 && sidePrev >= 0)) {
+        Intersection_points(droneStart, droneTarget, lastPoint, prevPoint, pointOnLine);
+    }
+    else if ((sideLast < 0 && sidePrev >= 0) || (sideLast > 0 && sidePrev <= 0)) {
+        Intersection_points(droneStart, droneTarget, lastPoint, prevPoint, returnPoint);
+  }
+    return true;
+
 }
 
 
 //מסננת ענן נקודות ומוצאת זווית פנויה לטיסה
-float findMostRightFreeGap(const vector<Point>& cloud, Point dronePos) {
+float findMostRightFreeGap(const vector<Point>& cloud, Drone& Drone, droneDimension droneDim) {
 
-    Vector3f dronPoseVector = { dronePos.x, dronePos.y, dronePos.z };
+    Point dronePos = Drone.getDronePos();
+    Vector3f dronPosVector = { dronePos.x, dronePos.y, dronePos.z};
     float angle = -180; // התחלה מזווית שמאלית קיצונית
     const float maxAngle = 180;
-    const float maxStepDeg = 10.0f; // גבול מקסימלי לקפיצת זווית
     bool freeGapFound = false;
 
     while (angle <= maxAngle) {
@@ -125,19 +84,19 @@ float findMostRightFreeGap(const vector<Point>& cloud, Point dronePos) {
         Vector3f up(0, 0, 1);
         Vector3f right = forward.cross(up).normalized();
 
-        float minX = std::numeric_limits<float>::max();
+        float minX = numeric_limits<float>::max();
         bool foundInside = false;
         Point mostLeftPoint;
 
         for (const auto& p : cloud) {
             Vector3f pVector = { p.x, p.y, p.z };
-            Vector3f delta = pVector - dronPoseVector;
+            Vector3f delta = pVector - dronPosVector;
 
             float x = delta.dot(forward);
             float y = delta.dot(right);
             float z = delta.dot(up);
 
-            bool inside = fabs(x) <= Physical_depth && fabs(y) <= Physical_width && fabs(z) <= Physical_height;
+            bool inside = fabs(x) <= droneDim.length && fabs(y) <= droneDim.width && fabs(z) <= droneDim.height;
 
             if (inside) {
                 foundInside = true;
@@ -158,11 +117,7 @@ float findMostRightFreeGap(const vector<Point>& cloud, Point dronePos) {
             Vector3f dir = { mostLeftPoint.x - dronePos.x, mostLeftPoint.y - dronePos.y, 0 };
             float newAngle = atan2(dir.y(), dir.x()) * 180.0f / M_PI;
 
-            // הבדל בין הזווית החדשה לקודמת – כדי לוודא שלא תהיה קפיצה גדולה מדי
             float deltaAngle = newAngle - angle;
-            if (fabs(deltaAngle) > maxStepDeg)
-                deltaAngle = (deltaAngle > 0 ? maxStepDeg : -maxStepDeg);
-
             angle += deltaAngle;
         }
     }
@@ -170,7 +125,7 @@ float findMostRightFreeGap(const vector<Point>& cloud, Point dronePos) {
 }
 
 //פונקציה לסכימת אורך המסלול מימין ומשמאל
-float computePolylineLength(const vector<Point2f>& points) {
+float computePolylineLength(const vector<Point>& points) {
     float length = 0.0f;
     for (size_t i = 1; i < points.size(); ++i) {
         float dx = points[i].x - points[i - 1].x;
@@ -180,13 +135,13 @@ float computePolylineLength(const vector<Point2f>& points) {
     return length;
 }
 
-float crossProduct(const Point2f& a, const Point2f& b, const Point2f& c)
+float crossProduct(const Point& a, const Point& b, const Point& c)
 {
     return (b.x - a.x) * (c.y - a.y) - (b.y - a.y) * (c.x - a.x);
 }
 
 // מציאת המעטפה הקמורה עם נקודות בכיוון השעון
-void convexHullClockwise(vector<Point2f> turnPoints,vector<Point2f>& hull)
+void convexHullClockwise(vector<Point> turnPoints,vector<Point>& hull)
 {
     if (turnPoints.size() <= 1)
     {
@@ -194,7 +149,7 @@ void convexHullClockwise(vector<Point2f> turnPoints,vector<Point2f>& hull)
         return;
     }
     // מיון הנקודות לפי x ואז y
-    sort(turnPoints.begin(), turnPoints.end(), [](const Point2f& a, const Point2f& b)
+    sort(turnPoints.begin(), turnPoints.end(), [](const Point& a, const Point& b)
         {
             return a.x < b.x || (a.x == b.x && a.y < b.y);
         });
@@ -225,20 +180,17 @@ void convexHullClockwise(vector<Point2f> turnPoints,vector<Point2f>& hull)
     hull.pop_back();
 }
 
-//פונקציה שבודקת איזה צד ארוך יותר ימין או שמאל
-void analyzeDroneTurnsAndHull(const Point& startPos,
-    const Point& goalPos,
-    float deltaZ,
-    float radius,
-    float minGapWidth,
-    const Point2f& crossingPoint,
-    const vector<Point2f>& turnPoints) {
+vector<Point> analyzeDroneTurnsAndHull(
+    const Point startPos,
+    const Point goalPos,
+    const Point crossingPoint,
+    const Point returnToLinePoint) { 
 
-    vector<Point2f> hull;
-    convexHullClockwise(turnPoints, hull);
+    vector<Point> hull;
+    convexHullClockwise(listPoint, hull);
 
-    vector<Point2f> rightOfLine;
-    vector<Point2f> leftOfLine;
+    vector<Point> rightOfLine;
+    vector<Point> leftOfLine;
 
     for (const auto& p : hull) {
         float dx1 = goalPos.x - startPos.x;
@@ -256,56 +208,64 @@ void analyzeDroneTurnsAndHull(const Point& startPos,
         }
     }
 
-    // הוספת נקודת החצייה לשני הצדדים
     leftOfLine.push_back(crossingPoint);
     rightOfLine.insert(rightOfLine.begin(), crossingPoint);
 
-    // חישוב אורכים והשוואה
     float leftLength = computePolylineLength(leftOfLine);
     float rightLength = computePolylineLength(rightOfLine);
 
     if (leftLength > rightLength) {
-        cout << "LEFT side is longer." << endl;
+        leftOfLine.push_back(returnToLinePoint); // הוספת הנקודה לקבוצה השמאלית
     }
     else if (rightLength > leftLength) {
-        cout << "RIGHT side is longer." << endl;
+        rightOfLine.push_back(returnToLinePoint); // הוספת הנקודה לקבוצה הימנית
     }
     else {
-        cout << "Both sides are equal in length." << endl;
+        // במקרה של שוויון, הוספה לשתי הקבוצות
+        leftOfLine.push_back(returnToLinePoint);
+        rightOfLine.push_back(returnToLinePoint);
     }
+    return (leftLength >= rightLength) ? leftOfLine : rightOfLine;
 }
 
 // Normalize a vector
-Point2f normalize(const Point2f& v) {
-    float len = sqrt(v.x * v.x + v.y * v.y);
-    if (len == 0) return { 0, 0 };
-    return { static_cast<float> (v.x / len),static_cast<float> (v.y / len) };
+Point normalize(const Point& v) {
+    float len = sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+    if (len == 0) return { 0, 0, 0 };
+    return { v.x / len, v.y / len, v.z / len };
 }
 
-// Rotate 90 degrees counter-clockwise to get normal vector
-Point2f getNormal(const Point2f& v) {
-    return { -v.y, v.x };
+// Get normal (cross product of two vectors)
+Point getNormal(const Point& a, const Point& b) {
+    return {
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x
+    };
 }
+
 
 // Inflate or deflate polygon
-vector<Point2f> inflatePolygon(const std::vector<Point2f>& polygon, float distance) {
+vector<Point> inflatePolygon(const vector<Point>& polygon, float distance) {
     int n = polygon.size();
-    vector<Point2f> inflated;
+    vector<Point> inflated;
 
     for (int i = 0; i < n; ++i) {
-        Point2f prev = polygon[(i - 1 + n) % n];
-        Point2f curr = polygon[i];
-        Point2f next = polygon[(i + 1) % n];
+        Point prev = polygon[(i - 1 + n) % n];
+        Point curr = polygon[i];
+        Point next = polygon[(i + 1) % n];
 
-        Point2f edge1 = normalize(curr - prev);
-        Point2f edge2 = normalize(next - curr);
+        Point edge1 = normalize(curr - prev);
+        Point edge2 = normalize(next - curr);
 
-        Point2f normal1 = getNormal(edge1);
-        Point2f normal2 = getNormal(edge2);
+        // נורמל למישור הנוצר מהשוליים - לא תמיד מושלם אם הפוליגון לא שטוח
+        Point normal = normalize(getNormal(edge1, edge2));
 
-        Point2f avgNormal = normalize(normal1 + normal2);
-        Point2f inflatedPoint = curr + avgNormal * distance;
+        // להזיז בניצב למישור ולממוצע הכיוונים של הקצוות
+        Point avgDir = normalize(edge1 + edge2);
+        Point inflateDir = normalize(getNormal(avgDir, normal)); // וקטור ניצב לשניהם
 
+        Point inflatedPoint = curr + inflateDir * distance;
         inflated.push_back(inflatedPoint);
     }
 
@@ -339,18 +299,18 @@ void proximity(vector<Point>& points, int idx,
 
 
 // בונה את רשימת האשכולות
-vector<vector<Point>> euclideanCluster(vector<Point>& points,
+vector<vector<Point>> euclideanCluster(vector<Point>& clude,
     KDTree* tree, float distanceTol)
 {
     vector<vector<Point>> clusters;
-    vector<bool> processed(points.size(), false);
+    vector<bool> processed(clude.size(), false);
 
-    for (int i = 0; i < points.size(); ++i)
+    for (int i = 0; i < clude.size(); ++i)
     {
         if (!processed[i])
         {
             vector<Point> cluster;
-            proximity(points, i, cluster, processed, tree, distanceTol);
+            proximity(clude, i, cluster, processed, tree, distanceTol);
             clusters.push_back(cluster);
         }
     }
@@ -381,31 +341,45 @@ float computeClusterSize(vector<Point>& cluster)
     return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void DivisionIntoClusters(vector<Point> points)
+void DivisionIntoClusters(vector<Point>& filteredCloud, vector<Point> clude)
 {
     // בונים את ה-KDTree בצורה רקורסיבית ומאוזנת
-    KDTree tree(points, 0);
+    KDTree tree(clude, 0);
 
     // אשכול לפי מרחק
     float distanceTol = 1.5;
-    vector<vector<Point>> clusters = euclideanCluster(points, &tree, distanceTol);
+    vector<vector<Point>> clusters = euclideanCluster(clude, &tree, distanceTol);
 
     // הפרדת אשכולות קטנים מגדולים
     float minPhysicalSize = 1.0f;
 
-    vector<vector<Point>> largeClusters;
-    vector<vector<Point>> smallClusters;
+    Node* rootA = nullptr;
+    for (const auto& p : clude)
+        insert(rootA, p);
 
-    for (auto& cluster : clusters)
-    {
+    Node* rootB = nullptr;
+    for (auto& cluster : clusters) {
         float size = computeClusterSize(cluster);
-
-        if (size <= minPhysicalSize)
-            smallClusters.push_back(cluster);
-        else
-            largeClusters.push_back(cluster);
+        if (size <= minPhysicalSize) {
+            for (const auto& p : cluster)
+                insert(rootB, p);
+        }
     }
+    if(rootB != nullptr)
+    {
+        Node* filteredLidarTree = checkTreeContainsAnotherTree(rootA, rootB);
+        collectPoints(filteredLidarTree, filteredCloud); 
+    }
+
 }
+
+void collectPoints(Node* root, vector<Point>& points) {
+    if (!root) return;
+    points.push_back(root->value);
+    collectPoints(root->left, points); 
+    collectPoints(root->right, points); 
+}
+
 
 
 // מציאת הצומת השמאלי ביותר בתת עץ
@@ -429,18 +403,16 @@ Node* successor(Node* node) {
     return node->parent;
 }
 
-bool checkTreeContainsAnotherTree1(Node*& rootA, Node* rootB) {
+Node* checkTreeContainsAnotherTree(Node* rootA, Node* rootB) {
     Node* a = LeftMost(rootA);
     Node* b = LeftMost(rootB);
 
     while (a != nullptr) {
-        if (b == nullptr) break;
-
         if (a->value == b->value) {
             Point val = a->value;  // שמירה כי a ייעלם לאחר remove
             a = successor(a);
             b = successor(b);
-            rootA = remove(rootA, val); // מחיקת הערך מ־A
+            rootA = removeNode(rootA, val); // מחיקת הערך מ־ A
         }
         else if (a->value < b->value) {
             a = successor(a);
@@ -449,5 +421,5 @@ bool checkTreeContainsAnotherTree1(Node*& rootA, Node* rootB) {
             b = successor(b);
         }
     }
-    return true;
+    return rootA;
 }

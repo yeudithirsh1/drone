@@ -33,9 +33,6 @@
     <ClCompile Include="Soldiers.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Sensors.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="GPS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -57,7 +54,7 @@
     <ClCompile Include="LIDAR.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="GPSSoliders.cpp">
+    <ClCompile Include="KalmanSoliders.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="Graph.cpp">
@@ -81,6 +78,12 @@
     <ClCompile Include="Global.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="TreeAVL.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Geohash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KalmanFilter.h">
@@ -93,9 +96,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Object.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Sensors.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="GPS.h">
@@ -113,11 +113,8 @@
     <ClInclude Include="LIDAR.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="GPSSoliders.h">
+    <ClInclude Include="KalmanSoliders.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TreeAVL.cpp">
-      <Filter>Source Files</Filter>
     </ClInclude>
     <ClInclude Include="Graph.h">
       <Filter>Header Files</Filter>
@@ -129,6 +126,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Global.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TreeAVL.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Geohash.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Soldiers.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

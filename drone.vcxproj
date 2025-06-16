@@ -137,8 +137,9 @@
     <ClInclude Include="controllerPID.h" />
     <ClInclude Include="DroneCommands.h" />
     <ClInclude Include="DroneFeatures.h" />
+    <ClInclude Include="Geohash.h" />
     <ClInclude Include="Global.h" />
-    <ClInclude Include="GPSSoliders.h" />
+    <ClInclude Include="KalmanSoliders.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="IMU.h" />
     <ClInclude Include="KalmanFilter.h" />
@@ -147,16 +148,17 @@
     <ClInclude Include="KDTree.h" />
     <ClInclude Include="LIDAR.h" />
     <ClInclude Include="Object.h" />
-    <ClInclude Include="Sensors.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="TreeAVL.cpp" />
+    <ClInclude Include="Soldiers.h" />
+    <ClInclude Include="TreeAVL.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="controllerPID.cpp" />
     <ClCompile Include="DroneCommands.cpp" />
     <ClCompile Include="DroneFeatures.cpp" />
+    <ClCompile Include="Geohash.cpp" />
     <ClCompile Include="Global.cpp" />
-    <ClCompile Include="GPSSoliders.cpp" />
+    <ClCompile Include="KalmanSoliders.cpp" />
     <ClCompile Include="imageToGpsConverter.cpp" />
     <ClCompile Include="IMU.cpp" />
     <ClCompile Include="KalmanFilter.cpp" />
@@ -169,9 +171,9 @@
     <ClCompile Include="Graph.cpp" />
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PointInSpace.h" />
-    <ClCompile Include="Sensors.cpp" />
     <ClCompile Include="Soldiers.cpp" />
     <ClCompile Include="test.cpp" />
+    <ClCompile Include="TreeAVL.cpp" />
     <ClCompile Include="YOLO.cpp" />
     <ClCompile Include="YoloDecisionEngine.cpp" />
   </ItemGroup>

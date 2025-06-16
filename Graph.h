@@ -16,13 +16,10 @@ struct Vertex
 
 };
 
-float toRadians(float degrees);
-float toDegrees(float radians);
-float bearingOrAzimuth(float lat1, float lon1, float lat2, float lon2, bool d);
-float relativeBearing(Vertex A, Vertex B, Vertex C, bool d);
-void convexHull(vector<Vertex>& Vertexs, vector<Vertex>& hull, bool d);
-pair<float, float> destinationPoint(float lat, float lon, float azimuthDeg, float distanceMeters);
+float crossProduct(const Vertex& a, const Vertex& b, const Vertex& c);
+void convexHull(vector<Vertex>& Landmarks, vector<Vertex>& hull);
 vector<pair<Vertex, Vertex>> createEdges(vector<Vertex>& Vertexs);
-vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float fieldView, bool flag, bool d);
+bool isOnLine(Vertex A, Vertex B, Vertex P);
+vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float step, bool flag);
 vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph);
 vector<vector<Vertex>> graphNavigationPath(vector<Vertex>& Landmarks, float fieldView);

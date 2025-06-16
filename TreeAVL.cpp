@@ -1,16 +1,10 @@
 #include <iostream>
 #include <algorithm>
 #include "PointInSpace.h"
+#include "TreeAVL.h"
+
 using namespace std;
 
-
-struct Node {
-    Point value;
-    Node* left;
-    Node* right;
-    Node* parent; 
-    int height;
-};
 
 // פונקציה להחזרת גובה של צומת
 int getHeight(Node* n) {
@@ -22,7 +16,7 @@ Node* createNode(Point value) {
     Node* node = new Node();
     node->value = value;
     node->left = node->right = nullptr;
-    node->parent= nullptr;
+    node->parent = nullptr;
     node->height = 1;
     return node;
 }
@@ -120,13 +114,13 @@ Node* minValueNode(Node* node) {
 }
 
 // מחיקת צומת מהעץ
-Node* remove(Node* root, Point value) {
+Node* removeNode(Node* root, Point value) {
     if (!root) return root;
 
     if (value < root->value)
-        root->left = remove(root->left, value);
+        root->left = removeNode(root->left, value);
     else if (value > root->value)
-        root->right = remove(root->right, value);
+        root->right = removeNode(root->right, value);
     else {
         // מקרה עם ילד אחד או ללא ילדים
         if (!root->left || !root->right) {
@@ -142,7 +136,7 @@ Node* remove(Node* root, Point value) {
         else {
             Node* temp = minValueNode(root->right);
             root->value = temp->value;
-            root->right = remove(root->right, temp->value);
+            root->right = removeNode(root->right, temp->value);
         }
     }
 

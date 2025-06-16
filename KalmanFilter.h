@@ -12,8 +12,8 @@ public:
     KalmanFilter();
     void init(float initial_x, float initial_y, float initial_z);
     void predictLoop(Drone& drone);
-    void predict(float dt, const Vector3f& u, float yaw, float pitch);
-    void externalInputUpdate(const Vector3f& new_u, float new_yaw, float new_pitch);
+    void predict(float dt, const VectorXf& VectorControl);
+    void externalInputUpdate(VectorXf& newVectorControl);
     void updateGPS(const Vector3f& position);
     void updateLidar(const VectorXf& position);
     void updateIMU(const Vector3f& linear_accel, float yaw_rate, float pitch_rate);  
@@ -21,9 +21,7 @@ public:
     void updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone);
 private:
     shared_mutex updateMutex;
-    Vector3f latest_u = Vector3f(0.0f, 0.0f, 0.0f);
-    float latest_yaw = 0.0f;
-    float latest_pitch = 0.0f;
+    VectorXf latestVectorControl;
     shared_mutex predictMutex;
     shared_mutex stateMutex;
     // State: [x, y, z, vx, vy, vz, ax, ay, az, yaw, yaw_rate, pitch, pitch_rate]

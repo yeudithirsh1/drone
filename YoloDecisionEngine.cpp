@@ -186,7 +186,3 @@ void trackObjects(const Frame& frame, vector<ObjectTrack>& tracked_objects, vect
             [](const ObjectTrack& t) { return !t.is_valid; }),
         tracked_objects.end());
 }
-
-void EscapeFromDrone() {
-
-}

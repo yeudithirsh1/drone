@@ -1,7 +1,6 @@
-#ifndef POINT_IN_SPACE_H  
-#define POINT_IN_SPACE_H  
+#pragma once
 
-struct Point {  
+struct Point {
    float x, y, z;  
 
    // Default constructor to fix the error  
@@ -28,8 +27,13 @@ struct Point {
    bool operator!=(const Point& other) const {
        return !(*this == other);
    }
+
+   Point operator+(const Point& other) const { return { x + other.x, y + other.y, z + other.z }; }
+   Point operator-(const Point& other) const { return { x - other.x, y - other.y, z - other.z}; }
+   Point operator*(float scalar) const { return { x * scalar, y * scalar, z * scalar }; }
+   Point operator/(float scalar) const { return { x / scalar, y / scalar, z / scalar}; }
 };  
 
-#endif // POINT_IN_SPACE_H
 
 
+	// Add a constructor to initialize Point with x, y, z values  

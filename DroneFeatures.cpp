@@ -6,7 +6,7 @@
 
 using namespace std;
 Drone::Drone() {}
-int Drone::getMaxRPM()
+float Drone::getMaxRPM()
 {
 	return maxRPM;
 }
@@ -184,58 +184,3 @@ void Drone::setAccelerationInAxes(Acceleration accelerationInAxes)
 	unique_lock<shared_mutex> lock(accelerationInAxesMutex);
 	this->accelerationInAxes = accelerationInAxes;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//struct Vector3 {
-//	float x, y, z;
-//};
-//
-//void Drone::computeLinearAcceleration(const vector<Eigen::Vector3f>& velocities, const vector<float>& times) {
-//	vector<Eigen::Vector3f> accelerations;
-//
-//	for (size_t i = 1; i < velocities.size(); ++i) {
-//		float dt = times[i] - times[i - 1];
-//		if (dt == 0) {
-//			// Prevent division by zero
-//			accelerations.push_back(Eigen::Vector3f(0, 0, 0));
-//			continue;
-//		}
-//		Eigen::Vector3f a;
-//		a.x() = (velocities[i].x() - velocities[i - 1].x()) / dt;
-//		a.y() = (velocities[i].y() - velocities[i - 1].y()) / dt;
-//		a.z() = (velocities[i].z() - velocities[i - 1].z()) / dt;
-//
-//		accelerations.push_back(a);
-//	}
-//
-//	for (size_t i = 0; i < accelerations.size(); ++i) {
-//		AccelerationInAxes.ax = accelerations[i].x();
-//		AccelerationInAxes.ay = accelerations[i].y();
-//		AccelerationInAxes.az = accelerations[i].z();
-//	}
-//}

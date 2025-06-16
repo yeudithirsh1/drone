@@ -1,9 +1,8 @@
 #include <mutex>
 #include "pointInSpace.h" 
-#include "Sensors.h"
 #include "KalmanFilter.h"
 
-class GPS : public Sensors
+class GPS
 {  
 private:  
 Point GPSLocation;  

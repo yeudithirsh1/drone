@@ -48,13 +48,13 @@ struct Acceleration {
 
 class Drone {  
 private:  
-  const int maxRPM = 120000;  
+  const float maxRPM = 120000;  
   const float target_altitude = 10.0f;  
   const float max_altitude = 120.0f;  
   const float mass = 1.5f;  
   const float A = 0.05f;  
   const float C_d = 1.0f;  
-  const float C_t = 0.1f; 
+  const float C_t = 0.1f; //מקדם הדחף של המנועים - כלומר כמה דחף מייצר פרופלור עבור מהירות סיבוב מסוימת
   const float hoverSpeed = sqrt(mass * g / C_t);
   float rpm;  
   float rho;  //צפיפות האוויר 
@@ -83,7 +83,7 @@ private:
   Acceleration accelerationInAxes;  
 public:  
   Drone(); // בנאי ברירת מחדל  
-  int getMaxRPM();  
+  float getMaxRPM();  
   float getTargetAltitude();  
   float getMaxAltitude();  
   float getMass();  

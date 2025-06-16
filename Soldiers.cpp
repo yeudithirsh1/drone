@@ -1,123 +1,115 @@
 #include <iostream>
-#include <fstream>
-#include <sstream>
+#include <filesystem>
 #include <string>
+#include <sstream>
+#include <fstream> // Added to fix E0070: incomplete type "std::ifstream" is not allowed
 #include <thread>
-#include <queue>
-#include <mutex>
-#include <atomic>
-#include <vector>
-#include <chrono>
-#include <random>
-#include <map>
+#include "Geohash.h"
+#include "KalmanSoliders.h"
+#include <shared_mutex>
+#include "Global.h"
+
 using namespace std;
+namespace fs = filesystem;
 
-queue<string> task_queue;  // תור משימות לקריאה
-mutex task_queue_mutex;         // נעילה לתור
-mutex data_store_mutex;        // נעילה למילון
-map<string, string> data_store; // מילון לשמירת ערכים
+shared_mutex geohashMapMutex; 
+unordered_map<string, string> geohashMap;
 
-// פונקציה לכתיבה לקובץ
-void sensor_writer(const string& file_path) {
-    random_device rd;
-    mt19937 gen(rd());
-    uniform_int_distribution<> dis(0, 100);
 
-    while (true) {
-        int new_value = dis(gen);
-        ofstream file(file_path);
-        if (file.is_open()) {
-            file << new_value;
-            file.close();
+//shared_lock<shared_mutex> lock();
+
+int countFilesInDirectory(string& path) {
+    int count = 0;
+    try {
+        for (const auto& entry : fs::directory_iterator(path)) {
+            if (fs::is_regular_file(entry.status())) {
+                count++;
+            }
         }
-        this_thread::sleep_for(chrono::milliseconds(200));  // 5 פעמים בשנייה
     }
+    catch (const fs::filesystem_error& e) {
+        cerr << "שגיאת מערכת קבצים: " << e.what() << endl;
+    }
+    return count;
 }
 
-// הוספת משימות קריאה לתור – כל 0.2 שניות
-void periodic_enqueue_reads(const vector<string>& file_paths) {
-    while (true) {
-        for (const auto& path : file_paths) {
-            lock_guard<std::mutex> lock(task_queue_mutex);
-            task_queue.push(path);
-        }
-        this_thread::sleep_for(chrono::milliseconds(200));  // 5 פעמים בשנייה
-    }
-}
+void updateGPSReadingsFromFile(string& path, KalmanSoliders& kalmanSoliders)
+{
+    bool initialized = false;
+    string oldGeohash;
 
-// קריאה ועדכון מילון הערכים
-void worker() {
-    while (true) {
-        string path;
+    while (true)
+    {
         {
-            lock_guard<mutex> lock(task_queue_mutex);
-            if (!task_queue.empty()) {
-                path = task_queue.front();
-                task_queue.pop();
+            shared_lock<shared_mutex> lock(mutexReachedDestination);
+            if (reachedDestination) {
+                return;
+            }
+        }
+
+        ifstream inputFile(path);
+        vector<string> lines;
+
+        if (inputFile.is_open()) {
+            string line;
+            while (getline(inputFile, line)) {
+                if (!line.empty())
+                    lines.push_back(line);
+            }
+            inputFile.close();
+        }
+
+        if (inputFile.is_open() && !lines.empty()) {
+            string lastLine = lines.back();
+
+            float lat, lon;
+            string id;
+            istringstream iss(lastLine);
+            iss >> lat >> lon >> id;
+
+            Vector2f location = { lat, lon };
+            Vector2f estimatedLocation;
+
+            if (!initialized) {
+                kalmanSoliders.init(location);
+                estimatedLocation = kalmanSoliders.getPosition();
+                initialized = true;
             }
             else {
-                this_thread::sleep_for(chrono::milliseconds(50));  // המתנה קצרה אם אין משימות בתור
-                continue;
+                kalmanSoliders.update(location);
+                estimatedLocation = kalmanSoliders.getPosition();
+            }
+
+            string newGeohash = encodeGeohash(estimatedLocation.x(), estimatedLocation.y(), 12);
+
+            {
+                unique_lock<shared_mutex> lock(geohashMapMutex);
+                if (oldGeohash.size()) {
+                    geohashMap.erase(oldGeohash);
+                }
+                geohashMap[newGeohash] = id;
+                oldGeohash = newGeohash;
             }
         }
-
-        ifstream file(path);
-        if (file.is_open()) {
-            string new_value;
-            getline(file, new_value);
-            file.close();
-
-            lock_guard<mutex> lock(data_store_mutex);
-            data_store[path] = new_value;  // עדכון המילון
-        }
         else {
-            cerr << "Error reading " << path << std::endl;
+            cerr << "שגיאה: לא ניתן לפתוח את הקובץ או שהוא ריק " << path << endl;
         }
+
+        this_thread::sleep_for(chrono::milliseconds(200));
     }
 }
 
-// מעקב סטטיסטיקות
-void stats_monitor() {
-    while (true) {
-        this_thread::sleep_for(chrono::seconds(1));
-        lock_guard<std::mutex> lock(data_store_mutex);
-        cout << "[STAT] Files tracked: " << data_store.size() << " | Tasks in queue: " << task_queue.size() << std::endl;
+void startTrackingAllSoldiers(string& path) {
+    int count = countFilesInDirectory(path);
+    vector<thread> threads;
+
+    // יצירת עצמים מסוג kalmanSoliders, אחד לכל חייל
+    vector<KalmanSoliders> kalmanList(count);
+
+    for (int i = 0; i < count; i++) {
+        string filePath = path + "/" + "soldiers_" + to_string(i) + ".txt";
+
+        // שליחת הקובץ והאובייקט המתאים לפונקציה
+        threads.emplace_back(updateGPSReadingsFromFile, ref(filePath), ref(kalmanList[i]));
     }
 }
-
-//int main() {
-//    const string folder_to_watch = "C:/Users/This User/Documents/project/Soldiers";
-//    vector<string> file_paths;
-//
-//    // יצירת קבצים
-//    for (int i = 0; i < 6; ++i) {
-//        string file_path = folder_to_watch + "/sensor_" + to_string(i + 1) + ".txt";
-//        ofstream file(file_path);
-//        if (file.is_open()) {
-//            file << "0";  // כתיבת ערך התחלתי
-//            file.close();
-//        }
-//        file_paths.push_back(file_path);
-//    }
-//
-//    // יצירת תהליכונים לכתיבה
-//    for (const auto& path : file_paths) {
-//        thread(sensor_writer, path).detach();
-//    }
-//
-//    // יצירת תהליכוני קריאה
-//    for (int i = 0; i < 6; ++i) {
-//        thread(worker).detach();
-//    }
-//
-//    // תהליכון להוספת קריאות לתור
-//    thread(periodic_enqueue_reads, file_paths).detach();
-//
-//    // תהליכון לסטטיסטיקות
-//    thread(stats_monitor).detach();
-//
-//    // המתנה שהמערכת תמשיך לפעול
-//    this_thread::sleep_for(chrono::hours(24));
-//
-//    return 0;
-//}

@@ -10,29 +10,36 @@ using namespace Eigen;
 
 
 Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) {
-    /*
-    Notice:
-    1/ JacobiSVD return U,S,V, S as a vector, "use U*S*Vt" to get original Matrix;
-    2/ matrix type 'MatrixXf' or 'MatrixXf' matters.
-    */
-    Matrix4f T = MatrixXf::Identity(4, 4);
+   
+    Matrix4f T = MatrixXf::Identity(4, 4);//אתחול מטריצת הטרנספורמציה כמטריצת היחידה
+
+	//אתחול וקטור מרכז המסה של A ושל B
     Vector3f centroid_A(0, 0, 0);
-    Vector3f centroid_B(0, 0, 0);
-    MatrixXf AA = A;
-    MatrixXf BB = B;
-    int row = A.rows();
+	Vector3f centroid_B(0, 0, 0);
+
+	//יצירת העתק של A ו-B כדי לשמור על הנתונים המקוריים
+	MatrixXf AA = A;
+	MatrixXf BB = B;
+
+    // חישוב מרכז המסה של A ו-B
+    // לולאה לחישוב סכום כל הנקודות במטריצות A ו-B
+	// לאחר מכן, מחלקים במספר השורות כדי לקבל את מרכז המסה
+	int row = A.rows();
 
     for (int i = 0; i < row; i++) {
-        centroid_A += A.block<1, 3>(i, 0).transpose();
+        centroid_A += A.block<1, 3>(i, 0).transpose(); 
         centroid_B += B.block<1, 3>(i, 0).transpose();
     }
     centroid_A /= row;
     centroid_B /= row;
+
+	//מרכוז הנקודות: מחסרים מכל נקודה את מרכז המסה שלה כך שכל קבוצה נעה למרכז המקור  (0,0,0) זה שלב חשוב ב בתהליך SVD
     for (int i = 0; i < row; i++) {
         AA.block<1, 3>(i, 0) = A.block<1, 3>(i, 0) - centroid_A.transpose();
         BB.block<1, 3>(i, 0) = B.block<1, 3>(i, 0) - centroid_B.transpose();
     }
 
+	// חישוב מטריצת הקורלציה H
     MatrixXf H = AA.transpose() * BB;
     MatrixXf U;
     VectorXf S;
@@ -41,11 +48,12 @@ Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) 
     Matrix3f R;
     Vector3f t;
 
+	// חישוב ה-SVD של מטריצת הקורלציה H
     JacobiSVD<MatrixXf> svd(H, ComputeFullU | ComputeFullV);
-    U = svd.matrixU();
-    S = svd.singularValues();
-    V = svd.matrixV();
-    Vt = V.transpose();
+	U = svd.matrixU();// U הוא מטריצת הווקטורים העצמיים של H
+	S = svd.singularValues();// S הוא וקטור הערכים הסינגולריים של H
+	V = svd.matrixV();// V הוא מטריצת הווקטורים העצמיים של H
+	Vt = V.transpose();// Vt הוא הטרנספוז של V
 
     R = Vt.transpose() * U.transpose();
 
@@ -116,11 +124,16 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
 
 NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
     // יצירת וקטור אינדקסים ל-points
+
+
+
+
+
     vector<int> dst_indices(dst.rows());
     iota(dst_indices.begin(), dst_indices.end(), 0); 
 
     // יצירת עץ KD
-    MatrixXf dst_copy = dst; // העתקה כי הקונסטרקטור לא מקבל const
+    MatrixXf dst_copy = dst; 
     KDTree tree(dst_copy, dst_indices, 0);
 
     NEIGHBOR neigh;
@@ -128,7 +141,7 @@ NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
     for (int i = 0; i < src.rows(); ++i) {
         Vector3f query = src.row(i).transpose();
         int nearest_idx = -1;
-        float best_dist_sq = std::numeric_limits<float>::max();
+        float best_dist_sq = numeric_limits<float>::max();
         tree.nearest(query, nearest_idx, best_dist_sq);
         neigh.indices.push_back(nearest_idx);
         neigh.distances.push_back(std::sqrt(best_dist_sq));

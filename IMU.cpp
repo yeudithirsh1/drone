@@ -13,23 +13,21 @@
 
 using namespace std;
 
-IMU::IMU()
-    : Sensors(0.0f, chrono::high_resolution_clock::now()), // קריאה לבנאי של Sensors
-    acceleration(0.0f, 0.0f, 0.01f){}
-
+IMU::IMU() {};
 void IMU::updateIMUReadingsFromFile(KalmanFilter& kalmanfilter)
 {
-    ifstream file("src/IMU.txt"); // Open the text file for reading  
-    if (!file.is_open()) {
-        cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/IMU.txt" << endl;
-        return;
-    }
-
-    string line;
-    file.seekg(0, ios::end); // להתחיל מהסוף
+    
 
     while (true)
     {
+        ifstream file("src/IMU.txt"); // Open the text file for reading  
+        if (!file.is_open()) {
+            cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/IMU.txt" << endl;
+            return;
+        }
+        
+        string line;
+        file.seekg(0, ios::end); // להתחיל מהסוף
         {
            shared_lock<shared_mutex> lock(mutexReachedDestination);
            if (reachedDestination) {
@@ -44,8 +42,8 @@ void IMU::updateIMUReadingsFromFile(KalmanFilter& kalmanfilter)
         float yaw_rate, pitch_rate;
         yaw_rate = yawRate;
         pitch_rate = pitchRate;
-        kalmanfilter.updateIMU(accelerationVector, yaw_rate, pitch_rate);
+        kalmanfilter.updateIMU(accelerationVector, yaw_rate, pitch_rate); 
+        file.close(); // Close the file  
         this_thread::sleep_for(chrono::milliseconds(50)); // 20 פעמים בשניה
     }
-    file.close(); // Close the file  
 }

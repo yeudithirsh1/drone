@@ -1,6 +1,4 @@
 #pragma once
-#ifndef KDTREE_H
-#define KDTREE_H
 #include <Eigen/Dense>
 #include <memory>
 #include <vector>
@@ -26,5 +24,4 @@ private:
     bool valid = false;
 };
 
-#endif // KDTREE_H
 

@@ -14,15 +14,16 @@ using namespace Eigen;
 
 void GPS::updateGPSReadingsFromFile(KalmanFilter& kalmanfilter)
 {  
-   ifstream inputFile("src/GPS.txt");
-   if (!inputFile.is_open()) {
-       cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/GPS.txt" << endl;
-       return;
-   }
-   inputFile.seekg(0, ios::end); // להתחיל מהסוף
-   string line;  
+   
    while (true)
    {
+       ifstream inputFile("src/GPS.txt");
+       if (!inputFile.is_open()) {
+           cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/GPS.txt" << endl;
+           return;
+       }
+       inputFile.seekg(0, ios::end); // להתחיל מהסוף
+       string line;  
        {
            shared_lock<shared_mutex> lock(mutexReachedDestination);
            if (reachedDestination) {
@@ -34,8 +35,8 @@ void GPS::updateGPSReadingsFromFile(KalmanFilter& kalmanfilter)
        iss >> GPSLocation.x >> GPSLocation.y >> GPSLocation.z;
        Vector3f GPSLocationVector;
        GPSLocationVector << GPSLocation.x, GPSLocation.y, GPSLocation.z;
-       kalmanfilter.updateGPS(GPSLocationVector);
+       kalmanfilter.updateGPS(GPSLocationVector);   
+       inputFile.close();
        this_thread::sleep_for(chrono::seconds(200));// 5 פעמים בשניה
    } 
-   inputFile.close();
 }

@@ -9,9 +9,9 @@
 #include "ICP.h"
 #include "DroneFeatures.h"
 #include "KalmanFilter.h"
-#include "Global.h"
 #include <shared_mutex>
-
+#include "Global.h"
+#include "Object.h"
 
 
 using namespace std;
@@ -44,22 +44,23 @@ ICP_OUT LIDAR::getIcpTransformation()
 
 void LIDAR::updateLidarReadingsFromFile(Drone& drone, KalmanFilter& kalmanFilter)
 {
-    ifstream file("src/LidarPoints.txt");
-    if (!file.is_open()) {
-        cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/LidarPoints.txt" << std::endl;
-        return;
-    }
-
-    string line;
-
+    
     while (true)
-    {
+    { 
         {
             shared_lock<shared_mutex> lock(mutexReachedDestination);
             if (reachedDestination) {
-                break;
+                return;
             }
         }
+        ifstream file("src/LidarPoints.txt");
+        if (!file.is_open()) {
+            cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/LidarPoints.txt" << std::endl;
+            return;
+        }
+
+        string line;
+        
         vector<Point> cloud;
         while (getline(file, line))
         {
@@ -77,26 +78,27 @@ void LIDAR::updateLidarReadingsFromFile(Drone& drone, KalmanFilter& kalmanFilter
             currentScan = cloud;
         }
         // עיבוד הסריקה הנוכחית
-        this_thread::sleep_for(chrono::milliseconds(100)); // עדכון  פעמים בשנייה
-        mergePointClouds(drone, cloud);
+        mergePointClouds(drone);
         kalmanFilter.updateLidar(lidarLocation);
+        isObstacleInFront(drone, drone.getDroneDim()); 
+        file.close();   
+        this_thread::sleep_for(chrono::milliseconds(100)); // עדכון  פעמים בשנייה
     }
-
-    file.close();
 }
 
+void LIDAR::mergePointClouds(Drone& drone) {
 
-void LIDAR::mergePointClouds(Drone& drone, vector<Point>& clouds) {
-
-    // עדכון currentScan
-    currentScan = clouds;
-
+    vector<Point> currentClude;
+    {
+        shared_lock<shared_mutex> lock(currentScanMutex);
+        currentClude = currentScan;
+    }
     // המרה למטריצות ישירות מתוך currentScan
-    MatrixXf currentMat(currentScan.size(), 3);
-    for (size_t i = 0; i < currentScan.size(); ++i) {
-        currentMat(i, 0) = currentScan[i].x;
-        currentMat(i, 1) = currentScan[i].y;
-        currentMat(i, 2) = currentScan[i].z;
+    MatrixXf currentMat(currentClude.size(), 3);
+    for (size_t i = 0; i < currentClude.size(); ++i) {
+        currentMat(i, 0) = currentClude[i].x;
+        currentMat(i, 1) = currentClude[i].y;
+        currentMat(i, 2) = currentClude[i].z;
     }
 
     // המרה גם ל־ previousScan
@@ -120,4 +122,54 @@ void LIDAR::locationFromLidarMeasurement(Drone& drone, Matrix4f& icpTransformati
 	};
 	Vector4f transformedPos = icpTransformation * pos;
 	lidarLocation  << transformedPos[0], transformedPos[1], transformedPos[2];
+}
+
+void LIDAR::isObstacleInFront(Drone& drone, droneDimension droneDim) {
+
+    vector<Point> currentClude;
+    {
+        shared_lock<shared_mutex> lock(currentScanMutex);
+        currentClude = currentScan;
+    }
+
+    vector<Point> filteredCloud;
+    DivisionIntoClusters(filteredCloud, currentClude);
+    if(filteredCloud.size())
+    {
+        unique_lock<shared_mutex> lock(currentScanMutex);
+        currentScan = filteredCloud;
+    }
+
+
+    Point dronePos = drone.getDronePos();
+    Vector3f dronePosVector(dronePos.x, dronePos.y, dronePos.z);
+
+    float yaw = drone.getYaw(); // כיוון התנועה של הרחפן - זווית ביונים
+    float yawRad = yaw * M_PI / 180.0f;
+
+    // כיוון קדימה לפי ה-yaw
+    Vector3f forward(cos(yawRad), sin(yawRad), 0);
+    Vector3f up(0, 0, 1);
+    Vector3f right = forward.cross(up).normalized();
+
+    for (const auto& p : currentClude) {
+        Vector3f pVector(p.x, p.y, p.z);
+        Vector3f delta = pVector - dronePosVector;
+
+        float x = delta.dot(forward); // מרחק קדימה
+        float y = delta.dot(right);   // מרחק צדדי
+        float z = delta.dot(up);      // מרחק לגובה
+
+        bool inside = (x >= 0 && x <= drone.getDroneDim().height) &&
+            (fabs(y) <= droneDim.width) &&
+            (fabs(z) <= droneDim.height);
+
+        if (inside)
+        {
+            {
+                unique_lock<shared_mutex> lock(mutexObstacleStatus);
+                obstacleStatuse = true;
+            }
+        }
+    }
 }

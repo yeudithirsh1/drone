@@ -7,11 +7,10 @@
 #include "PointInSpace.h" // כולל את הקובץ PointInSpace.h
 #include "ICP.h"
 #include "DroneFeatures.h" // כולל את הקובץ DroneFeatures.h
-#include "Sensors.h" // כולל את הקובץ Sensors.h
 using namespace std;
 
 
-class LIDAR : Sensors
+class LIDAR
 {
   private:
 	 vector<Point> currentScan;      // סריקה נוכחית
@@ -29,7 +28,8 @@ class LIDAR : Sensors
 	   VectorXf getLidarLocation();
 	   ICP_OUT getIcpTransformation();
 	   void updateLidarReadingsFromFile(Drone& drone, KalmanFilter& kalmanFilter);
-	   void mergePointClouds(Drone& drone, vector<Point>& clouds);
+	   void mergePointClouds(Drone& drone);
 	   void locationFromLidarMeasurement(Drone& drone, Matrix4f& icpTransformation);
+	   void isObstacleInFront(Drone& drone, droneDimension droneDim);
 };
 
