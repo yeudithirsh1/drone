@@ -1,11 +1,11 @@
 #pragma once  
-#include "pointInSpace.h" // כולל את הקובץ pointSpace.h  
-#include <vector> // Include the vector header for std::vector  
-#include <Eigen/Dense> // Include Eigen for Vector3  
+#include "pointInSpace.h" 
+#include <vector> 
+#include <Eigen/Dense>  
 #include <shared_mutex>
+#include "Global.h"
+
 using namespace std;
-using std::vector; // Use the std namespace for vector  
-using Eigen::Vector3f; // Use Eigen's Vector3f for 3D vector representation  
 
 extern const float g; // רק הצהרה
 
@@ -48,9 +48,8 @@ struct Acceleration {
 
 class Drone {  
 private:  
-  const float maxRPM = 120000;  
-  const float target_altitude = 10.0f;  
-  const float max_altitude = 120.0f;  
+  const float maxRPM = 120000.0f;  
+  const float target_altitude = targetAltitude;
   const float mass = 1.5f;  
   const float A = 0.05f;  
   const float C_d = 1.0f;  
@@ -85,7 +84,6 @@ public:
   Drone(); // בנאי ברירת מחדל  
   float getMaxRPM();  
   float getTargetAltitude();  
-  float getMaxAltitude();  
   float getMass();  
   float getA();  
   float getC_d();  
@@ -124,8 +122,3 @@ public:
   Acceleration getAccelerationInAxes();  
   void setAccelerationInAxes(Acceleration AccelerationInAxes);  
 }; 
-
-
-
-
-//void computeLinearAcceleration(const vector<Vector3f>& velocities, const vector<float>& times);  

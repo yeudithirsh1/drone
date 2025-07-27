@@ -4,23 +4,56 @@
 #include "DroneFeatures.h"
 
 using namespace Eigen;
-extern bool reachedDestination;
-extern shared_mutex mutexReachedDestination;
-
 
 KalmanFilter::KalmanFilter() {}
+
+Matrix<float, 13, 1> KalmanFilter::getX() {
+    shared_lock<shared_mutex>lock(XMutex);
+    return x;
+}
+void KalmanFilter::setX(const Matrix<float, 13, 1>& newX) {
+    unique_lock<shared_mutex> lock(XMutex);
+    x = newX;
+}
+Matrix<float, 13, 13> KalmanFilter::getP() {
+    lock_guard<shared_mutex> lock(PMutex);
+    return P;
+}
+void KalmanFilter::setP(const Matrix<float, 13, 13>& newP) {
+    unique_lock<shared_mutex> lock(PMutex);
+    P = newP;
+}
+
+VectorXf KalmanFilter::getLatestVectorControl() {
+    lock_guard<shared_mutex> lock(latestVectorControlMutex);
+    return latestVectorControl;
+}
+void KalmanFilter::setLatestVectorControl(VectorXf newLatestVectorControl) {
+    unique_lock<shared_mutex> lock(latestVectorControlMutex);
+    latestVectorControl = newLatestVectorControl;
+}
 
 void KalmanFilter::init(float initial_x, float initial_y, float initial_z) {
     x = Matrix<float, 13, 1>::Zero();
     x(0) = initial_x;  // מיקום X
     x(1) = initial_y;  // מיקום Y
     x(2) = initial_z;  // מיקום Z
-    P = Matrix<float, 13, 13>::Identity() * 1.0f;
+
+	//תפקיד המטריצה P הוא לייצג את חוסר הוודאות של המצב הנוכחי של המערכת.
+    P = Matrix<float, 13, 13>::Identity() * 1.0f; 
     P(9, 9) = 100.0f; // חוסר ודאות גדול ב־yaw
+	P(11, 11) = 100.0f; // חוסר ודאות גדול ב־pitch
+
+    //תפקיד המטריצה F לתאר איך המצב משתנה עם הזמן ללא מדידות וללא פעולה חיצונית
     F = Matrix<float, 13, 13>::Identity();
+
+	// תפקיד המטריצה B הוא לתאר את השפעת הפעולה החיצונית על המצב
     B = Matrix<float, 13, 3>::Zero();
+
+	// תפקיד המטריצה Q הוא לייצג את חוסר הוודאות במודל המערכת עצמו
     Q = Matrix<float, 13, 13>::Identity() * 0.01f;
 
+	// הגדרת מטריצות המדידה והחוסר ודאות שלהן
     H_gps = Matrix<float, 3, 13>::Zero();
     H_gps.block<3, 3>(0, 0) = Matrix3f::Identity(); // x, y, z
     R_gps = Matrix3f::Identity() * 2.0f;
@@ -85,22 +118,13 @@ void KalmanFilter::updatingDroneVariables(Matrix<float, 13, 1> x, Drone& drone)
 	drone.setAcceleration(acceleration);
 }
 
-void KalmanFilter::predictLoop(Drone& drone) 
+void KalmanFilter::predictLoop(Drone& drone)
 {
     auto last_time = chrono::steady_clock::now();
-    while (true) {
-        {
-            shared_lock<shared_mutex> lock(mutexReachedDestination);
-            if (reachedDestination) {
-                break;
-            }
-        }
+    while (!getReachedDestination())
+    {        
         VectorXf vectorControl;
-
-        {
-            shared_lock<shared_mutex> lock(predictMutex);
-            vectorControl = latestVectorControl;
-        }
+		vectorControl = getLatestVectorControl();
 
         auto current_time = chrono::steady_clock::now();
         float dt = chrono::duration<float>(current_time - last_time).count();
@@ -110,17 +134,6 @@ void KalmanFilter::predictLoop(Drone& drone)
         this_thread::sleep_for(chrono::milliseconds(100));
     }
 }
-
-
-// פונקציה שמעדכנת קלט חדש
-void KalmanFilter::externalInputUpdate(VectorXf& newVectorControl)
-{
-    {
-        unique_lock<shared_mutex> lock(predictMutex);
-        latestVectorControl = newVectorControl;
-    }
-}
-
 
 void KalmanFilter::updateGPS(const Vector3f& position) {
     update(position, H_gps, R_gps);
@@ -142,15 +155,12 @@ void KalmanFilter::updateIMU(const Vector3f& linear_accel, float yaw_rate, float
 
 void KalmanFilter::update(const VectorXf& z, const MatrixXf& H, const MatrixXf& R)
 {
-    {
-        unique_lock<shared_mutex> lock(updateMutex);
-		VectorXf y = z - H * x;//ההפש בין חיזוי המדידה לבין המדידה עצמה
-		MatrixXf S = H * P * H.transpose() + R;//החוסר ודאות של המדידה
-		MatrixXf K = P * H.transpose() * S.inverse();//מטריצת הגיינמן, קובעת כמה להעדיף את המדידה על פני החיזוי
+    VectorXf y = z - H * getX();//ההפש בין חיזוי המדידה לבין המדידה עצמה
+    MatrixXf S = H * getP() * H.transpose() + R;//חוסר הוודאות בתחזית המדידה מוסיפים גם את חוסר הוודאות של החיישן התוצאה כמה אנחנו בטוחים במדידה 
+    MatrixXf K = getP() * H.transpose() * S.inverse();//מטריצת הגיינמן, קובעת כמה להעדיף את המדידה על פני החיזוי
 
-		x = x + K * y;//עדכון המצב הנוכחי של המערכת על סמך המדידה
-		P = (MatrixXf::Identity(x.size(), x.size()) - K * H) * P;//עדכון חוסר הוודאות של המערכת
-    }
+    setX(getX() + K * y);//עדכון המצב הנוכחי של המערכת על סמך המדידה
+    setP((MatrixXf::Identity(x.size(), x.size()) - K * H) * getP());//לאחר תיקון לפי מדידה, אנחנו סומכים יותר על המצב ולכן חוסר הוודאות קטן
 }
 
 

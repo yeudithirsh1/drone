@@ -12,6 +12,7 @@
 #include "DroneCommands.h"
 #include "Object.h"
 #include "Soldiers.h"
+#include "YOLO.h"
 using namespace std;
 
 
@@ -40,7 +41,7 @@ void mainNavigation(vector<vector<Vertex>> graph, Drone& drone, KalmanFilter& ka
             while (d)
             {
                 // מציאת זווית פנויה
-                float Angle = findMostRightFreeGap(lidar.getCurrentScan(), drone, drone.getDroneDim());
+                float Angle = findMostRightFreeGap(lidar, drone, drone.getDroneDim());
 
                 // סיבוב לזווית פנויה
                 rotateYaw(drone, Angle, kalmanFilter);
@@ -94,9 +95,8 @@ int main()
     // { {0, 0, 5, nullptr}, {4, 0, 5, nullptr}, {2, 1, 5, nullptr}, {1, 3, 5, nullptr}, {3, 4, 5, nullptr}, {5, 2, 5, nullptr}, {2, 2, 5, nullptr} }
 
     //בינתיים
-    float height;
     cout << "Enter drone flight height: ";
-    cin >> height;
+    cin >> targetAltitude;
     int numPoints;
     cout << "Enter number of (x, y) points: ";
     cin >> numPoints;
@@ -107,7 +107,7 @@ int main()
         cout << "Enter x and y for point " << i + 1 << ": ";
         cin >> x >> y;
         // מוסיפים את הנקודה עם הגובה שקיבלנו
-        Landmarks.emplace_back(x, y, height, nullptr);
+        Landmarks.emplace_back(x, y, targetAltitude, nullptr);
     }
     //טווח הראייה של הרחפן
     float fieldView = 2;
@@ -116,23 +116,29 @@ int main()
 
     //מפה לסריקה
     vector<vector<Vertex>> graph = graphNavigationPath(Landmarks, fieldView);//הפונקצייה מקבלת נקודות ציון ושדה ראייה של הרחפן
-    Point point = { graph[0][0].x, graph[0][0].y, 0 };
-    string path = "cdcd";
-    Drone drone;    
-    drone.setDronePos(point);//מיקום הרחפן
-    GPS sensorGPS;
-    IMU sensorIMU; 
-    LIDAR sensorLidar;
-    KalmanFilter kalmanFilter;
-    kalmanFilter.init(point.x, point.y, point.z);
-    thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(kalmanFilter));
-    thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(kalmanFilter));
-    thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(kalmanFilter));
-    thread predictThread(&KalmanFilter::predictLoop, &kalmanFilter, ref(drone));
-	startTrackingAllSoldiers(path);
-    takeoff(drone, kalmanFilter);
-    mainNavigation(graph, drone, kalmanFilter, sensorLidar);
-    land(drone, kalmanFilter);
-   return 0;
+   Point point = { graph[0][0].x, graph[0][0].y, 0 };
+   string path = "C:/Users/This User/Document/project/Soldiers";
+   string pathFileGps = "C:/Users/This User/Documents/project/Sensor/GPS.txt";
+   string pathFileImu = "C:/Users/This User/Documents/project/Sensor/IMU.txt";
+   string pathFileLidar = "C:/Users/This User/Documents/project/Sensor/LIDAR.txt";
+
+   Drone drone;    
+   drone.setDronePos(point);//מיקום הרחפן
+   GPS sensorGPS;
+   IMU sensorIMU; 
+   LIDAR sensorLidar;
+   KalmanFilter kalmanFilter;
+   kalmanFilter.init(point.x, point.y, point.z);
+   thread gpsThread(&GPS::updateGPSReadingsFromFile, &sensorGPS, ref(kalmanFilter), pathFileGps);
+   thread imuThread(&IMU::updateIMUReadingsFromFile, &sensorIMU, ref(kalmanFilter), pathFileImu);
+   thread lidarThread(&LIDAR::updateLidarReadingsFromFile, &sensorLidar, ref(drone), ref(kalmanFilter), pathFileLidar);
+   thread predictThread(&KalmanFilter::predictLoop, &kalmanFilter, ref(drone));
+   startTrackingAllSoldiers(path);
+   processDirectoryAndCopyFilesOnly();
+   bool runPythonScript();
+   takeoff(drone, kalmanFilter);
+   mainNavigation(graph, drone, kalmanFilter, sensorLidar);
+   land(drone, kalmanFilter);
+    return 0;
 }
 

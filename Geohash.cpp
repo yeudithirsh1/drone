@@ -1,9 +1,12 @@
 #include <iostream>
 #include <string>
 #include <cmath>
+#include <chrono>
+#include <unordered_map>
 
 using namespace std;
 const string BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz";
+
 
 string encodeGeohash(double latitude, double longitude, int precision) {
     string geohash;
@@ -52,3 +55,5 @@ string encodeGeohash(double latitude, double longitude, int precision) {
 
     return geohash;
 }
+
+

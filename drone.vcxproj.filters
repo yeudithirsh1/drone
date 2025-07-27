@@ -24,9 +24,6 @@
     <ClCompile Include="ICP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="test.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Object.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -84,6 +81,12 @@
     <ClCompile Include="Geohash.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="YOLO.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lidaeCameraSynchronization.h">
+      <Filter>Header Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="KalmanFilter.h">
@@ -135,6 +138,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Soldiers.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="imageToGpsConverter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

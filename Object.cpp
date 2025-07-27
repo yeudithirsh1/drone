@@ -42,6 +42,7 @@ void Intersection_points(Point startPos, Point goalPos, Point dronePos, Point dr
     point = intersectionPoint;
 }
 
+//בודקת האם עברנו את הנקודה על הישר
 bool TheTwoPointsOnLine(Point droneStart,
     Point droneTarget,
     Point& pointOnLine,
@@ -70,8 +71,8 @@ bool TheTwoPointsOnLine(Point droneStart,
 
 
 //מסננת ענן נקודות ומוצאת זווית פנויה לטיסה
-float findMostRightFreeGap(const vector<Point>& cloud, Drone& Drone, droneDimension droneDim) {
-
+float findMostRightFreeGap(LIDAR &lidar, Drone& Drone, droneDimension droneDim) 
+{
     Point dronePos = Drone.getDronePos();
     Vector3f dronPosVector = { dronePos.x, dronePos.y, dronePos.z};
     float angle = -180; // התחלה מזווית שמאלית קיצונית
@@ -88,7 +89,7 @@ float findMostRightFreeGap(const vector<Point>& cloud, Drone& Drone, droneDimens
         bool foundInside = false;
         Point mostLeftPoint;
 
-        for (const auto& p : cloud) {
+        for (const auto& p : lidar.getFilteredClouds()) {
             Vector3f pVector = { p.x, p.y, p.z };
             Vector3f delta = pVector - dronPosVector;
 
@@ -279,7 +280,7 @@ void proximity(vector<Point>& points, int idx,
     vector<Point>& cluster, vector<bool>& processed,
     KDTree* tree, float distanceTol)
 {
-    processed[idx] = true;
+    processed[idx] = true;//מחזיק האם הנקודה טופלה
     cluster.push_back(points[idx]);
 
     vector<Point> neighbors = tree->radiusSearch(points[idx], distanceTol);
@@ -307,6 +308,7 @@ vector<vector<Point>> euclideanCluster(vector<Point>& clude,
 
     for (int i = 0; i < clude.size(); ++i)
     {
+        //בדיקה אם הנקודה טופלה
         if (!processed[i])
         {
             vector<Point> cluster;
@@ -341,7 +343,7 @@ float computeClusterSize(vector<Point>& cluster)
     return sqrt(dx * dx + dy * dy + dz * dz);
 }
 
-void DivisionIntoClusters(vector<Point>& filteredCloud, vector<Point> clude)
+vector<Point> DivisionIntoClusters(vector<Point> filteredCloud, vector<Point> clude)
 {
     // בונים את ה-KDTree בצורה רקורסיבית ומאוזנת
     KDTree tree(clude, 0);
@@ -370,6 +372,7 @@ void DivisionIntoClusters(vector<Point>& filteredCloud, vector<Point> clude)
         Node* filteredLidarTree = checkTreeContainsAnotherTree(rootA, rootB);
         collectPoints(filteredLidarTree, filteredCloud); 
     }
+    return filteredCloud;
 
 }
 

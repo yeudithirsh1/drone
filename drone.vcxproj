@@ -139,6 +139,7 @@
     <ClInclude Include="DroneFeatures.h" />
     <ClInclude Include="Geohash.h" />
     <ClInclude Include="Global.h" />
+    <ClInclude Include="imageToGpsConverter.h" />
     <ClInclude Include="KalmanSoliders.h" />
     <ClInclude Include="Graph.h" />
     <ClInclude Include="IMU.h" />
@@ -172,7 +173,8 @@
     <ClCompile Include="Object.cpp" />
     <ClCompile Include="PointInSpace.h" />
     <ClCompile Include="Soldiers.cpp" />
-    <ClCompile Include="test.cpp" />
+    <ClCompile Include="lidaeCameraSynchronization.h" />
+    <ClCompile Include="YOLO.h" />
     <ClCompile Include="TreeAVL.cpp" />
     <ClCompile Include="YOLO.cpp" />
     <ClCompile Include="YoloDecisionEngine.cpp" />

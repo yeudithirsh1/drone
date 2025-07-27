@@ -14,10 +14,6 @@ float Drone::getTargetAltitude()
 {
 	return target_altitude;
 }
-float Drone::getMaxAltitude()
-{
-	return max_altitude;
-}
 float Drone::getMass()
 {
 	return mass;

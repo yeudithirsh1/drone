@@ -7,9 +7,7 @@
 using namespace std;
 using namespace Eigen;
 
-
-
-Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) {
+Matrix4f best_fit_transform(const MatrixXf& A, const MatrixXf& B) {
    
     Matrix4f T = MatrixXf::Identity(4, 4);//אתחול מטריצת הטרנספורמציה כמטריצת היחידה
 
@@ -33,28 +31,31 @@ Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) 
     centroid_A /= row;
     centroid_B /= row;
 
-	//מרכוז הנקודות: מחסרים מכל נקודה את מרכז המסה שלה כך שכל קבוצה נעה למרכז המקור  (0,0,0) זה שלב חשוב ב בתהליך SVD
+	//מרכוז הנקודות: מחסרים מכל נקודה את מרכז המסה שלה כך שכל קבוצה נעה למרכז המקור  (0,0,0) זה שלב חשוב בתהליך SVD
     for (int i = 0; i < row; i++) {
         AA.block<1, 3>(i, 0) = A.block<1, 3>(i, 0) - centroid_A.transpose();
         BB.block<1, 3>(i, 0) = B.block<1, 3>(i, 0) - centroid_B.transpose();
     }
 
-	// חישוב מטריצת הקורלציה H
-    MatrixXf H = AA.transpose() * BB;
+    //זו מטריצה שמכילה סיכום של המכפלות של הנקודות המקוריות והיעד, אחרי מרכוז H
+    MatrixXf H = AA.transpose() * B;
+
+    //רכיבי הפירוק הסינגולריים
     MatrixXf U;
     VectorXf S;
-    MatrixXf V;
-    MatrixXf Vt;
-    Matrix3f R;
-    Vector3f t;
+    MatrixXf V; 
+
+	MatrixXf Vt; // מטריצת הטרנספוז של V
+    Matrix3f R; //מטריצת סיבוב 
+    Vector3f t; //ווקטור הזזה
 
 	// חישוב ה-SVD של מטריצת הקורלציה H
+    //מטרת הפירוק: למצוא את הסיבוב R המיטבי שמעביר את A ל־B
     JacobiSVD<MatrixXf> svd(H, ComputeFullU | ComputeFullV);
-	U = svd.matrixU();// U הוא מטריצת הווקטורים העצמיים של H
-	S = svd.singularValues();// S הוא וקטור הערכים הסינגולריים של H
-	V = svd.matrixV();// V הוא מטריצת הווקטורים העצמיים של H
-	Vt = V.transpose();// Vt הוא הטרנספוז של V
-
+	U = svd.matrixU();
+	S = svd.singularValues();
+	V = svd.matrixV();
+	Vt = V.transpose();
     R = Vt.transpose() * U.transpose();
 
     if (R.determinant() < 0) {
@@ -62,6 +63,7 @@ Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) 
         R = Vt.transpose() * U.transpose();
     }
 
+    //ווקטור הזזה
     t = centroid_B - R * centroid_A;
 
     T.block<3, 3>(0, 0) = R;
@@ -71,10 +73,10 @@ Matrix4f best_fit_transform(const Eigen::MatrixXf& A, const Eigen::MatrixXf& B) 
 }
 
 ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolerance) {
-    int row = A.rows();
-    MatrixXf src = MatrixXf::Ones(3 + 1, row);
+    int row = A.rows(); // מספר השורות במטריצה A
+    MatrixXf src = MatrixXf::Ones(4, row);
     MatrixXf src3f = MatrixXf::Ones(3, row);
-    MatrixXf dst = MatrixXf::Ones(3 + 1, row);
+    MatrixXf dst = MatrixXf::Ones(4, row);
     NEIGHBOR neighbor;
     Matrix4f T;
     MatrixXf dst_chorder = MatrixXf::Ones(3, row);
@@ -85,12 +87,14 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
         src.block<3, 1>(0, i) = A.block<1, 3>(i, 0).transpose();
         src3f.block<3, 1>(0, i) = A.block<1, 3>(i, 0).transpose();
         dst.block<3, 1>(0, i) = B.block<1, 3>(i, 0).transpose();
-
     }
 
     float prev_error = 0;
     float mean_error = 0;
-    for (int i = 0; i < max_iterations; i++) {
+    bool continue_loop = true;
+    int i = 0;
+
+    while (continue_loop && i < max_iterations) {
         neighbor = nearest_neighbot(src3f.transpose(), B);
 
         for (int j = 0; j < row; j++) {
@@ -105,11 +109,15 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
         }
 
         mean_error = accumulate(neighbor.distances.begin(), neighbor.distances.end(), 0.0) / neighbor.distances.size();
+
         if (abs(prev_error - mean_error) < tolerance) {
-            break;
+            continue_loop = false;  // מפסיקים את הלולאה
         }
-        prev_error = mean_error;
-        iter = i + 2;
+        else {
+            prev_error = mean_error;
+            iter = i + 2;
+        }
+        i++;
     }
 
     T = best_fit_transform(A, src3f.transpose());
@@ -122,29 +130,25 @@ ICP_OUT icp(const MatrixXf& A, const MatrixXf& B, int max_iterations, int tolera
 
 
 
+//חיפוש של השכן הקרוב ביותר עבור כל נקודה במטריצת src מתוך אוסף נקודות במטריצת dst
 NEIGHBOR nearest_neighbot(const MatrixXf& src, const MatrixXf& dst) {
-    // יצירת וקטור אינדקסים ל-points
+
+    vector<int> dst_indices(dst.rows());    // יצירת וקטור אינדקסים ל-dst
+	iota(dst_indices.begin(), dst_indices.end(), 0); // רצף של מספרים עוקבים מ-0 עד גודל ה-dst
+
+	MatrixXf dst_copy = dst; // יצירת העתק של מטריצת ה-dst כדי לשמור על הנתונים המקוריים
+    KDTree tree(dst_copy, dst_indices, 0);    // יצירת עץ KD
 
 
+    NEIGHBOR neigh;//יצירת מבנה בו יישמרו האינדקסים של השכנים הקרובים ביותר והמרחקים אליהם
 
-
-
-    vector<int> dst_indices(dst.rows());
-    iota(dst_indices.begin(), dst_indices.end(), 0); 
-
-    // יצירת עץ KD
-    MatrixXf dst_copy = dst; 
-    KDTree tree(dst_copy, dst_indices, 0);
-
-    NEIGHBOR neigh;
-
-    for (int i = 0; i < src.rows(); ++i) {
-        Vector3f query = src.row(i).transpose();
-        int nearest_idx = -1;
-        float best_dist_sq = numeric_limits<float>::max();
-        tree.nearest(query, nearest_idx, best_dist_sq);
-        neigh.indices.push_back(nearest_idx);
-        neigh.distances.push_back(std::sqrt(best_dist_sq));
+	for (int i = 0; i < src.rows(); ++i) {      //מעבר על כל הנקודות במטריצה-src
+		Vector3f query = src.row(i).transpose();    //המרת נקודה לווקטור תלת ממדי
+		int nearest_idx = -1;      //אתחול האינדקס הקרוב ביותר ל- -1
+		float best_dist_sq = numeric_limits<float>::max(); //אתחול המרחק הטוב ביותר בריבוע לערך המקסימלי האפשרי
+        tree.nearest(query, nearest_idx, best_dist_sq); //מציאת השכן הקרוב ביותר לנקודה הנוכחית 
+		neigh.indices.push_back(nearest_idx);  //שמירת האינדקס של השכן הקרוב ביותר במבנה ה-NEIGHBOR
+		neigh.distances.push_back(sqrt(best_dist_sq)); //שמירת המרחק של השכן הקרוב ביותר במבנה ה-NEIGHBOR
     }
 
     return neigh;

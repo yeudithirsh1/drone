@@ -11,8 +11,7 @@ public:
     void init(const Vector2f& initial_position);
     void predict();
     void update(const Vector2f& measured_position);
-    Vector2f getPosition();
-
+    void updatePosition();
 private:
     Vector2f x_;      // מצב: מיקום [x, y, z]
     Matrix2f P_;      // טעות אומדן

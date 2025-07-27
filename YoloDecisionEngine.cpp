@@ -4,35 +4,47 @@
 #include <algorithm>
 #include <iostream>
 #include "PointInSpace.h"
+#include "lidaeCameraSynchronization.h"
+#include "LIDAR.h"
+#include <opencv2/core/types.hpp>
+#include "imageToGpsConverter.h"
+#include "Geohash.h"
 
 using namespace std;
 
-
+//אוביקט שזוהה ע"י לידאר
 struct DetectedObject {
     vector<Point> lidar_points;
 };
 
+//מייצג פריים בזמן מסוים
 struct Frame {
     vector<DetectedObject> objects;
     double timestamp;
 };
 
-struct ObjectTrack {
-    int id;
-    Point last_position;
-    Point initial_position;
-    double last_timestamp;
-    int missed_frames = 0;
-    bool is_valid = true;
 
-    double first_visible_time = -1;
-    bool was_alerted = false;
+struct ObjectTrack {
+	int id; // מזהה ייחודי של האובייקט
+	Point last_position; // המיקום האחרון שבו האובייקט נראה
+	Point initial_position; // המיקום בו האובייקט זוהה לראשונה
+    double last_timestamp; //הזמן שבו האובייקט זוהה בפעם האחרונה
+    int missed_frames = 0; //כמה פריימים רצופים האובייקט לא זוהה
+    bool is_valid = true; //האם האובייקט עדיין במעקב
+
+    double first_visible_time = -1; //הזמן בו האוביקט הופיע לראשונה
+	bool was_alerted = false; // האם נשלחה התראה על האובייקט הזה
 };
 
-int next_id = 0;
-int max_missed_frames = 5;
+int next_id = 0; //מונה המספק מזהה ייחודי לכל אובייקט חדש שמתחלים לעקוב אחריו
+int max_missed_frames = 5; //מספר המקסימלי של פריימים רצופים שבהם מותר לא לזהות אובייקט
+
+//המרחק המקסימלי (במטרים למשל) שמותר בין מיקום קודם של 
+// אובייקט למיקום חדש כדי שנחשיב את זה כאותו אובייקט
 float max_tracking_distance = 3.0f;
 
+
+ 
 // פונקציה לחישוב מרחק בין שני נקודות
 float distance(const Point& a, const Point& b) {
     float dx = a.x - b.x;
@@ -65,7 +77,7 @@ vector<int> hungarianAlgorithm(const vector<vector<float>>& cost_matrix) {
     vector<int> p(m + 1, 0), way(m + 1, 0);
 
     for (int i = 1; i <= n; ++i) {
-        p[0] = i;
+		p[0] = i; //הווקטור P אומר לאיזה שורה שייכנו את העמודה j
         int j0 = 0;
         vector<float> minv(m + 1, numeric_limits<float>::max());
         vector<char> used(m + 1, false);
@@ -116,9 +128,11 @@ vector<int> hungarianAlgorithm(const vector<vector<float>>& cost_matrix) {
 
 void trackObjects(const Frame& frame, vector<ObjectTrack>& tracked_objects, vector<Point> detected_centroids) {
     
-    int n = tracked_objects.size();
-    int m = detected_centroids.size();
+    int n = tracked_objects.size(); // מספר האובייקטים שנמצאים כבר במעקב
+	int m = detected_centroids.size(); //מספר האובייקטים שזוהו בפריים הנוכחי
 
+
+    // יצירת מטריצה בגודל n*m כל ערך מיצג מרחק התאמה ביו אובייקט במעקב לנקודת זיהוי חדשה
     vector<vector<float>> cost_matrix(n, vector<float>(m, max_tracking_distance + 1.0f));
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < m; ++j) {
@@ -185,4 +199,30 @@ void trackObjects(const Frame& frame, vector<ObjectTrack>& tracked_objects, vect
         remove_if(tracked_objects.begin(), tracked_objects.end(),
             [](const ObjectTrack& t) { return !t.is_valid; }),
         tracked_objects.end());
+}
+
+
+
+void handlePerson( const string& calibration_file, BoundingBox boundingBox, LIDAR& lidar, Drone& drone) {
+     
+    vector<Point> cloud = lidar.getQ();
+    vector<cv::Point3f> points3f;
+    points3f.reserve(cloud.size());
+
+    for (const auto& pt : cloud) {
+        points3f.emplace_back(cv::Point3f(pt.x, pt.y, pt.z));
+    }
+
+    float distance =  Lidar_to_camera_ratio(calibration_file, points3f, boundingBox).avg_distance;
+    CameraCalibration cameraCalibration;
+    cameraCalibration = loadCalibrationFromFile(calibration_file);
+    pair<float, float> coords = yoloToGPS(boundingBox.x_center, boundingBox.y_center, distance, calibration_file, drone);
+    string str = encodeGeohash(coords.first, coords.second, 12);
+
+
+
+}
+
+void printTerroristDetectedMessage() {
+    cout << "זוהה מחבל" << endl;
 }

@@ -2,21 +2,29 @@
 #include <filesystem>
 #include <string>
 #include <sstream>
-#include <fstream> // Added to fix E0070: incomplete type "std::ifstream" is not allowed
+#include <fstream>
 #include <thread>
+#include <unordered_set>
 #include "Geohash.h"
 #include "KalmanSoliders.h"
 #include <shared_mutex>
 #include "Global.h"
+#include <queue>
 
 using namespace std;
 namespace fs = filesystem;
-
-shared_mutex geohashMapMutex; 
-unordered_map<string, string> geohashMap;
+using namespace chrono;
 
 
-//shared_lock<shared_mutex> lock();
+
+void soldierLocationUpdate(string& geohash)
+{
+    if (getSoldiersPositionHistory().empty()) {
+        return;
+    }
+    auto lastSetPtr = soldiersPositionHistory.back();
+    lastSetPtr->insert(geohash);
+}
 
 int countFilesInDirectory(string& path) {
     int count = 0;
@@ -36,8 +44,6 @@ int countFilesInDirectory(string& path) {
 void updateGPSReadingsFromFile(string& path, KalmanSoliders& kalmanSoliders)
 {
     bool initialized = false;
-    string oldGeohash;
-
     while (true)
     {
         {
@@ -63,45 +69,51 @@ void updateGPSReadingsFromFile(string& path, KalmanSoliders& kalmanSoliders)
             string lastLine = lines.back();
 
             float lat, lon;
-            string id;
+            string id;	
+
             istringstream iss(lastLine);
             iss >> lat >> lon >> id;
 
+
             Vector2f location = { lat, lon };
-            Vector2f estimatedLocation;
 
             if (!initialized) {
                 kalmanSoliders.init(location);
-                estimatedLocation = kalmanSoliders.getPosition();
                 initialized = true;
             }
             else {
                 kalmanSoliders.update(location);
-                estimatedLocation = kalmanSoliders.getPosition();
             }
 
-            string newGeohash = encodeGeohash(estimatedLocation.x(), estimatedLocation.y(), 12);
-
-            {
-                unique_lock<shared_mutex> lock(geohashMapMutex);
-                if (oldGeohash.size()) {
-                    geohashMap.erase(oldGeohash);
-                }
-                geohashMap[newGeohash] = id;
-                oldGeohash = newGeohash;
-            }
         }
         else {
             cerr << "שגיאה: לא ניתן לפתוח את הקובץ או שהוא ריק " << path << endl;
         }
 
-        this_thread::sleep_for(chrono::milliseconds(200));
+        this_thread::sleep_for(milliseconds(200));
     }
 }
+
+void snapshotLoop()
+{
+    while (!getReachedDestination())
+    {
+        {
+            unique_lock<shared_mutex> lock(soldiersPositionHistoryMutex);
+            auto newSetPtr = make_shared<unordered_set<string>>();
+            soldiersPositionHistory.push(newSetPtr);
+        }
+
+        this_thread::sleep_for(chrono::milliseconds(100)); // או פרק הזמן שלך
+    }
+}
+
 
 void startTrackingAllSoldiers(string& path) {
     int count = countFilesInDirectory(path);
     vector<thread> threads;
+
+    threads.emplace_back(snapshotLoop);
 
     // יצירת עצמים מסוג kalmanSoliders, אחד לכל חייל
     vector<KalmanSoliders> kalmanList(count);

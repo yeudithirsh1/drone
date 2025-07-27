@@ -14,36 +14,37 @@
 using namespace std;
 
 IMU::IMU() {};
-void IMU::updateIMUReadingsFromFile(KalmanFilter& kalmanfilter)
+void IMU::updateIMUReadingsFromFile(KalmanFilter& kalmanfilter, const string& filePath)
 {
-    
-
-    while (true)
+   
+    while (!getReachedDestination())
     {
-        ifstream file("src/IMU.txt"); // Open the text file for reading  
+        ifstream file(filePath);
         if (!file.is_open()) {
             cerr << "שגיאה: לא ניתן לפתוח את הקובץ src/IMU.txt" << endl;
             return;
         }
         
-        string line;
-        file.seekg(0, ios::end); // להתחיל מהסוף
-        {
-           shared_lock<shared_mutex> lock(mutexReachedDestination);
-           if (reachedDestination) {
-              break;
-           }
+        string line, lastLine;
+        while (getline(file, line)) {
+            if (!line.empty()) {
+                lastLine = line;
+            }
         }
-        getline(file, line);
-        istringstream iss(line);
-        iss >> acceleration.ax >> acceleration.ay >> acceleration.az >> yawRate >> pitchRate; // Ensure valid input extraction 
-        Vector3f accelerationVector;
-        accelerationVector << acceleration.ax, acceleration.ay, acceleration.az;
-        float yaw_rate, pitch_rate;
-        yaw_rate = yawRate;
-        pitch_rate = pitchRate;
-        kalmanfilter.updateIMU(accelerationVector, yaw_rate, pitch_rate); 
-        file.close(); // Close the file  
+
+        file.close();
+
+        if (!lastLine.empty()) {
+            istringstream iss(lastLine);
+
+            iss >> acceleration.ax >> acceleration.ay >> acceleration.az >> yawRate >> pitchRate;
+            Vector3f accelerationVector;
+            accelerationVector << acceleration.ax, acceleration.ay, acceleration.az;
+            float yaw_rate, pitch_rate;
+            yaw_rate = yawRate;
+            pitch_rate = pitchRate;
+            kalmanfilter.updateIMU(accelerationVector, yaw_rate, pitch_rate);
+        }
         this_thread::sleep_for(chrono::milliseconds(50)); // 20 פעמים בשניה
     }
 }

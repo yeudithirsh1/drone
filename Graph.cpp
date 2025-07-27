@@ -50,13 +50,6 @@ vector<pair<Vertex, Vertex>> createEdges(vector<Vertex>& Vertexs)
     return edges;
 }
 
-bool isOnLine(Vertex A, Vertex B, Vertex P) {
-    
-    double slope = (B.y - A.y) / (B.x - A.x); // חישוב שיפוע הישר
-    double expectedY = slope * (P.x - A.x) + A.y; // חישוב ה-y הצפוי של P על פי משוואת הישר
-    return abs(P.y - expectedY) < 1e-6; // סובלנות קטנה לשגיאות חישוב
-}
-
 
 vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float step, bool flag) {
     vector<Vertex> Vertexs;
@@ -69,24 +62,21 @@ vector<Vertex> generateVertexsOnLine(Vertex A, Vertex B, float step, bool flag) 
     float dx = (B.x - A.x) / distance * step;
     float dy = (B.y - A.y) / distance * step;
 
-    for (int i = 0; i <= steps; i++) {
+    for (int i = 1; i <= steps; i++) {
         Vertex P = { A.x + i * dx, A.y + i * dy, A.z, nullptr };
-        if (isOnLine(A, B, P)) {
-            if (i == 0 && flag) continue;
-            Vertexs.push_back(P);
-        }
+        Vertexs.push_back(P);
     }
-
     return Vertexs;
 }
 
 
 
 vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
+	int count = 0;
     bool flag = true;
-    int parallelRibs = graph.size() - 1, parallelVertex = graph[graph.size() - 1].size() - 1,
+    int parallelSide = graph.size() - 1, parallelVertex = graph[graph.size() - 1].size() - 1,
         currentRib, vertexOnRib;
-    for (currentRib = 0; currentRib < graph.size() && currentRib < parallelRibs; currentRib++)
+    for (currentRib = 0; currentRib < graph.size() && currentRib < parallelSide; currentRib++)
     {
         for (vertexOnRib = 0; vertexOnRib < graph[currentRib].size(); vertexOnRib++)
         {
@@ -102,33 +92,33 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
             }
             else
             {
-                if (parallelVertex >= 0)
+                graph[currentRib][vertexOnRib].next = &graph[parallelSide][parallelVertex];
+                if (parallelVertex - 2 >= 0)
+                    parallelVertex -= 2;
+                else
                 {
-                    graph[currentRib][vertexOnRib].next = &graph[parallelRibs][parallelVertex];
-                    if (parallelVertex - 2 >= 0)
-                        parallelVertex -= 2;
-                    else
-                    {
-                        if (parallelVertex == 0) {
-                            parallelVertex = graph[parallelRibs - 1].size() - 2;
-                            parallelRibs--;
-                        }
-                        else {
-                            parallelVertex = graph[parallelRibs - 1].size() - 1;
-                            parallelRibs--;
-                        }
+                    if (parallelVertex == 0) {
+                        parallelVertex = graph[parallelSide - 1].size() - 2;
+                        parallelSide--;
+                    }
+                    else {
+                        parallelVertex = graph[parallelSide - 1].size() - 1;
+                        parallelSide--;
                     }
                 }
                 flag = true;
             }
+			count++;
         }
     }
-    int lastPoint = currentRib - 1;
+    int lastRib = currentRib - 1;
+    int lastPoint = vertexOnRib - 1;
+	int num = 0;
     flag = true;
-    parallelRibs = 0, parallelVertex = 2;
-    for (currentRib = graph.size() - 1; currentRib >= 0 && parallelRibs < currentRib; currentRib--)
+    parallelSide = 0, parallelVertex = 2;
+    for (currentRib = graph.size() - 1; currentRib >= 0 && parallelSide < currentRib; currentRib--)
     {
-        for (vertexOnRib = graph[currentRib].size() - 1; vertexOnRib >= 0; vertexOnRib--)
+        for (vertexOnRib = graph[currentRib].size() - 1; vertexOnRib >= 0 && num < count; vertexOnRib--)
         {
             if (flag)
             {
@@ -142,21 +132,18 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
             }
             else
             {
-                if (parallelVertex < graph[currentRib].size())
+                graph[currentRib][vertexOnRib].next = &graph[parallelSide][parallelVertex];
+                if (parallelVertex + 2 <= graph[currentRib].size() - 1)
+                    parallelVertex += 2;
+                else
                 {
-                    graph[currentRib][vertexOnRib].next = &graph[parallelRibs][parallelVertex];
-                    if (parallelVertex + 2 <= graph[currentRib].size() - 1)
-                        parallelVertex += 2;
-                    else
-                    {
-                        if (parallelVertex == graph[parallelRibs].size() - 1) {
-                            parallelVertex = 1;
-                            parallelRibs++;
-                        }
-                        else {
-                            parallelVertex = 0;
-                            parallelRibs++;
-                        }
+                    if (parallelVertex == graph[parallelSide].size() - 1) {
+                        parallelVertex = 1;
+                        parallelSide++;
+                    }
+                    else {
+                        parallelVertex = 0;
+                        parallelSide++;
                     }
                 }
                 flag = true;
@@ -164,14 +151,16 @@ vector<vector<Vertex>> zigzag(vector<vector<Vertex>> graph) {
         }
     }
 
-    for (int i = currentRib; i > lastPoint; i--) {
-        for (int j = vertexOnRib; j >= 0; j--)
-            if (i - 1== lastPoint && j == 0)
-                graph[i][j].next = nullptr;
-            else if (j == 0 && i - 1 > lastPoint)
-                graph[i - 1][graph[i - 1].size() - 1].next = nullptr;
-            else
-                graph[i][j].next = &graph[i][j - 1];
+    if (graph[currentRib + 1][vertexOnRib + 1] == graph[lastRib + 1][0]) {
+        graph[currentRib + 1][vertexOnRib + 1].next = nullptr;
+        return graph;
+    }
+    for (int i = vertexOnRib; i >= 0; i--)
+    {
+        if(i==0)
+           graph[currentRib + 1][i].next = nullptr;
+		else
+		   graph[currentRib + 1][i].next = &graph[currentRib + 1][i - 1];
     }
     return graph;
 }

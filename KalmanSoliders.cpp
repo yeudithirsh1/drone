@@ -1,12 +1,15 @@
 #include "KalmanSoliders.h"
+#include "Soldiers.h"
+#include "Geohash.h"
+#include <thread>
 
 using namespace Eigen;
 
 KalmanSoliders::KalmanSoliders()
 {
-    F_ = Matrix2f::Identity();  // מצב נשאר קבוע בין מדידות
-    H_ = Matrix2f::Identity();  // מודל מדידה ישיר של מיקום
-    I_ = Matrix2f::Identity();
+    F_ = Matrix2f::Identity();  
+    H_ = Matrix2f::Identity(); 
+    I_ = Matrix2f::Identity(); 
                
     Q_ = Matrix2f::Identity() * 0.01f;
     R_ = Matrix2f::Identity() * 2.0f;
@@ -29,15 +32,17 @@ void KalmanSoliders::predict()
 
 void KalmanSoliders::update(const Vector2f& z)
 {
-    Vector2f y = z - H_ * x_;              // Innovation
-    Matrix2f S = H_ * P_ * H_.transpose() + R_;   // Innovation covariance
-    Matrix2f K = P_ * H_.transpose() * S.inverse(); // Kalman gain
+    Vector2f y = z - H_ * x_;              
+    Matrix2f S = H_ * P_ * H_.transpose() + R_;   
+    Matrix2f K = P_ * H_.transpose() * S.inverse(); 
 
     x_ = x_ + K * y;
-    P_ = (I_ - K * H_) * P_;
+	P_ = (I_ - K * H_) * P_; // עדכון חוסר הוודאות - הפחתת האי־ודאות לפי כמות המידע שהתקבלה מהמדידה
 }
 
-Vector2f KalmanSoliders::getPosition()
+void KalmanSoliders::updatePosition()
 {
-    return x_;
+    string geohash = encodeGeohash(x_[0], x_[1], 12);
+    soldierLocationUpdate(geohash);
+    this_thread::sleep_for(chrono::milliseconds(100)); // עדכון 10 פעמים בשנייה
 }

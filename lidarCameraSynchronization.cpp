@@ -3,99 +3,81 @@
 #include <vector>
 #include <string>
 #include <opencv2/opencv.hpp>
-#include <pcl/point_cloud.h>
-#include <pcl/point_types.h>
 #include <Eigen/Dense>
+#include "lidaeCameraSynchronization.h"
 
 using namespace std;
-using namespace pcl;
-using namespace cv;
 using namespace Eigen;
 
-struct BoundingBox {
-    int xmin, ymin, xmax, ymax;
-};
+float x_center, y_center, width, height;
+float xmin, ymin, xmax, ymax;
 
-struct CameraIntrinsics {
-    float fx, fy, cx, cy;
-};
-
-Point2f projectPoint(const Vector3f& point_cam, const CameraIntrinsics& intrinsics) {
+// --- פונקציית הקרנה ---
+cv::Point2f projectPoint(const Vector3f& point_cam, const CameraIntrinsics& intrinsics) {
     float u = (intrinsics.fx * point_cam.x()) / point_cam.z() + intrinsics.cx;
     float v = (intrinsics.fy * point_cam.y()) / point_cam.z() + intrinsics.cy;
     return cv::Point2f(u, v);
 }
 
-bool isInsideBoundingBox(const Point2f& pt, const BoundingBox& box) {
-    return (pt.x >= box.xmin && pt.x <= box.xmax && pt.y >= box.ymin && pt.y <= box.ymax);
+// --- בדיקת אם פיקסל בתוך הבוקס ---
+bool isInsideBoundingBox(const cv::Point2f& pt, const BoundingBox& box) {
+    return (pt.x >= box.x_center && pt.x <= box.y_center &&
+        pt.y >= box.width && pt.y <= box.height);
 }
 
-vector<PointXYZ> getObjectPointsInLidar(PointCloud<PointXYZ>::Ptr cloud,
+// --- טעינת קליברציה מקובץ ---
+CameraCalibration loadCalibrationFromFile(const string& filename) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "Failed to open calibration file: " << filename << endl;
+        exit(1);
+    }
+
+    CameraCalibration calib;
+    file >> calib.intrinsics.fx >> calib.intrinsics.fy >> calib.intrinsics.cx >> calib.intrinsics.cy;
+
+    calib.extrinsics = Matrix4f::Identity();
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 4; ++j)
+            file >> calib.extrinsics(i, j);
+
+    return calib;
+}
+
+ObjectLidarData getObjectPointsInLidar(const vector<cv::Point3f>& cloud,
     const Matrix4f& T_lidar_to_cam,
     const CameraIntrinsics& intrinsics,
     const BoundingBox& bbox) {
-    vector<PointXYZ> result;
+    ObjectLidarData result;
+    float total_distance = 0.0f;
 
-    for (const auto& pt : cloud->points) {
+    for (const auto& pt : cloud) {
         Vector4f pt_lidar(pt.x, pt.y, pt.z, 1.0f);
-        Vector4f pt_cam = T_lidar_to_cam * pt_lidar;
+        Vector4f pt_cam_homogeneous = T_lidar_to_cam * pt_lidar;
+        Vector3f pt_cam = pt_cam_homogeneous.head<3>();
 
-        if (pt_cam.z() <= 0) continue;
-
-        Point2f pixel = projectPoint(pt_cam.head<3>(), intrinsics);
-        if (isInsideBoundingBox(pixel, bbox)) {
-            result.push_back(pt);
+        if (pt_cam.z() > 0) {
+            cv::Point2f pixel = projectPoint(pt_cam, intrinsics);
+            if (isInsideBoundingBox(pixel, bbox)) {
+                result.cam_points.push_back(pt_cam);
+                total_distance += pt_cam.norm();  // מרחק מהמצלמה
+            }
         }
     }
+
+    if (!result.cam_points.empty()) {
+        result.avg_distance = total_distance / result.cam_points.size();
+    }
+    else {
+        result.avg_distance = -1.0f;
+    }
+
     return result;
 }
 
-PointCloud<PointXYZ>::Ptr loadLidarFromFile(const string& filename) {
-    PointCloud<PointXYZ>::Ptr cloud(new PointCloud<PointXYZ>);
-    ifstream file(filename);
-    float x, y, z;
-    while (file >> x >> y >> z) {
-        cloud->push_back(PointXYZ(x, y, z));
-    }
-    return cloud;
-}
-
-CameraIntrinsics loadIntrinsicsFromFile(const string& filename) {
-    ifstream file(filename);
-    CameraIntrinsics intrinsics;
-    file >> intrinsics.fx >> intrinsics.fy >> intrinsics.cx >> intrinsics.cy;
-    return intrinsics;
-}
-
-vector<PointXYZ> Lidar_to_camera_ratio(string image_file, string intrinsics_file, string lidar_file)
-{
-    Mat image = imread(image_file);
-    if (image.empty()) {
-        cerr << "Couldn't load image." << endl;
-    }
-
-    PointCloud<PointXYZ>::Ptr cloud = loadLidarFromFile(lidar_file);
-    CameraIntrinsics intrinsics = loadIntrinsicsFromFile(intrinsics_file);
-
-    BoundingBox bbox = { 300, 200, 400, 300 };
-
-    Mat R = (Mat_<double>(3, 3) << 1, 0, 0,
-        0, 1, 0,
-        0, 0, 1);
-    Mat tvec = (Mat_<double>(3, 1) << 0, 0, 0);
-
-    Vector3f t_eigen(tvec.at<double>(0), tvec.at<double>(1), tvec.at<double>(2));
-    Matrix3f R_eigen;
-    R_eigen << R.at<double>(0, 0), R.at<double>(0, 1), R.at<double>(0, 2),
-        R.at<double>(1, 0), R.at<double>(1, 1), R.at<double>(1, 2),
-        R.at<double>(2, 0), R.at<double>(2, 1), R.at<double>(2, 2);
-
-    Matrix4f T_lidar_to_cam = Matrix4f::Identity();
-    T_lidar_to_cam.block<3, 3>(0, 0) = R_eigen;
-    T_lidar_to_cam.block<3, 1>(0, 3) = t_eigen;
-
-    vector<PointXYZ> object_points_in_lidar = getObjectPointsInLidar(cloud, T_lidar_to_cam, intrinsics, bbox);
-
-    return object_points_in_lidar;
-
+ObjectLidarData Lidar_to_camera_ratio(const string& calibration_file,
+    const vector<cv::Point3f>& cloud,
+    const BoundingBox& bbox) {
+    CameraCalibration calib = loadCalibrationFromFile(calibration_file);
+    return getObjectPointsInLidar(cloud, calib.extrinsics, calib.intrinsics, bbox);
 }

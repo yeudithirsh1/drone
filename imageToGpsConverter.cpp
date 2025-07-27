@@ -1,73 +1,79 @@
-#include <Eigen/Dense>
-#include <cmath>
-#include <utility>
+ï»¿#include <Eigen/Dense>
+#include <GeographicLib/LocalCartesian.hpp>
+#include "DroneFeatures.h"
+#include <fstream>
+#include <iostream>
 
-using namespace std;
 using namespace Eigen;
-#ifndef M_PI  
-#define M_PI 3.14159265358979323846  
+using namespace std;
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
 #endif
 
-// äîøä î-(u,v) ìğ÷åãú 3D áîöìîä
-Vector3d imageToCamera(double u, double v, double depth, const Matrix3d& K) {
-    Vector3d pixel(u, v, 1.0);
-    Vector3d cam_point = depth * K.inverse() * pixel;
-    return cam_point;
+// ×”××¨×” ×× ×§×•×“×” ×‘×ª××•× ×” (u,v,depth) ×œ× ×§×•×“×” ×‘××¨×—×‘ ×”×ª×œ×ªÖ¾×××“×™ ×©×œ ×”××¦×œ××”
+Vector3f imageToCamera(float u, float v, float depth, const Matrix3f& K) {
+    Vector3f pixel(u, v, 1.0f);
+    return depth * K.inverse() * pixel;
 }
 
-// ñéáåá å÷èåø ìôé yaw å-pitch (áäğçä ùàéï roll)
-Vector3d rotateVector(const Vector3d& vec, double yaw_rad, double pitch_rad) {
-    Matrix3d R_yaw;
-    R_yaw << cos(yaw_rad), -sin(yaw_rad), 0,
-        sin(yaw_rad), cos(yaw_rad), 0,
+// ×¡×™×‘×•×‘ ×”× ×§×•×“×” ×œ×¤×™ yaw ×•Ö¾pitch
+Vector3f rotateVector(const Vector3f& vec, float yaw, float pitch) {
+    Matrix3f R_yaw, R_pitch;
+
+    R_yaw << cos(yaw), -sin(yaw), 0,
+        sin(yaw), cos(yaw), 0,
         0, 0, 1;
 
-    Matrix3d R_pitch;
-    R_pitch << cos(pitch_rad), 0, sin(pitch_rad),
+    R_pitch << cos(pitch), 0, sin(pitch),
         0, 1, 0,
-        -sin(pitch_rad), 0, cos(pitch_rad);
+        -sin(pitch), 0, cos(pitch);
 
     return R_yaw * R_pitch * vec;
 }
 
-// çéúåê ÷øï òí îéùåø ä÷ø÷ò (Z=0)
-Vector3d intersectWithGround(const Vector3d& origin, const Vector3d& direction) {
-    if (direction.z() == 0) {
-        return Vector3d::Zero();
-    }
-    double t = -origin.z() / direction.z();
-    return origin + t * direction;
+// ×—×™×ª×•×š ×§×¨×Ÿ ×¢× ×”×§×¨×§×¢ (Z = 0)
+Vector3f intersectWithGround(const Vector3f& origin, const Vector3f& dir) {
+    if (dir.z() == 0) return Vector3f::Zero();
+    float t = -origin.z() / dir.z();
+    return origin + t * dir;
 }
 
-// äîøä îäîèøéí ì-GPS (ôùèğé)
-pair<double, double> localToGPS(double lat0, double lon0, double dx, double dy) {
-    const double R = 6378137; // øãéåñ ëãåø äàøõ áîèøéí
-    double dLat = dy / R;
-    double dLon = dx / (R * cos(M_PI * lat0 / 180.0));
-    double lat = lat0 + dLat * 180.0 / M_PI;
-    double lon = lon0 + dLon * 180.0 / M_PI;
+// ×”××¨×ª ×§×•××•×¨×“×™× ×˜×•×ª ××§×•××™×•×ª ×œÖ¾GPS
+pair<float, float> localToGPS_GeoLib(float lat0, float lon0, float alt0, float dx, float dy, float dz = 0) {
+    GeographicLib::LocalCartesian proj(lat0, lon0, alt0);
+    double lat, lon, alt;
+    proj.Reverse(dx, dy, dz, lat, lon, alt);
     return { lat, lon };
 }
 
-// ôåğ÷öéä ùîùìáú àú ëì äúäìéê åîçæéøä àú ä-GPS
-pair<double, double> yoloToGPS(
-    double u, double v, double depth,
-    const Matrix3d& K,
-    double drone_height,
-    double pitch_rad,
-    double yaw_rad,
-    double drone_lat,
-    double drone_lon
-) {
-    Vector3d cam_point = imageToCamera(u, v, depth, K);
-    Vector3d world_dir = rotateVector(cam_point.normalized(), yaw_rad, pitch_rad);
-    Vector3d drone_pos(0, 0, drone_height);
-    Vector3d ground_point = intersectWithGround(drone_pos, world_dir);
-
-    if (ground_point.isZero()) {
-        // áîéãä åìà ğîöà çéúåê òí ä÷ø÷ò - îçæéøéí òøê îéåçã (ëàï 0,0)
-        return { 0.0, 0.0 };
+Eigen::Matrix3f loadMatrixFromFile(const std::string& filename) {
+    Eigen::Matrix3f K;
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open calibration file: " << filename << std::endl;
+        exit(EXIT_FAILURE);
     }
 
-    return localToGPS(drone_lat, drone_lon, ground_point.x(), ground_point.y());
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            file >> K(i, j);
+
+    file.close();
+    return K;
+}
+
+// ×¤×•× ×§×¦×™×” ×¡×•×¤×™×ª: YOLO â†’ GPS ×¢× ×§×¨×™××ª ××˜×¨×™×¦×ª K ××ª×•×š ×”×§×•×‘×¥
+pair<float, float> yoloToGPS(float u, float v, float depth, const string& calibFile, Drone& drone) {
+    Matrix3f K = loadMatrixFromFile(calibFile);
+
+    Vector3f cam_point = imageToCamera(u, v, depth, K);
+    Vector3f dir_world = rotateVector(cam_point.normalized(), drone.getYaw(), drone.getPitch());
+    Vector3f drone_pos(0, 0, drone.getTargetAltitude());
+    Vector3f ground_point = intersectWithGround(drone_pos, dir_world);
+
+    if (ground_point.isZero()) return { 0.0f, 0.0f };
+
+    return localToGPS_GeoLib(drone.getDronePos().x, drone.getDronePos().y, drone.getTargetAltitude(),
+        ground_point.x(), ground_point.y(), 0);
 }

@@ -11,5 +11,5 @@ private:
   float pitchRate;
 public:  
   IMU(); // הכרזה על הבנאי במחלקה  
-  void updateIMUReadingsFromFile(KalmanFilter& kalmanfilter);
+  void updateIMUReadingsFromFile(KalmanFilter& kalmanfilter, const string& filePath);
 };
